@@ -1,7 +1,7 @@
 import * as AWS from 'aws-sdk'
 import {SSM} from 'aws-sdk'
 import debug from 'debug'
-import {Options, GetParamsResult, ParametersFound, ParametersMissing} from '../types'
+import {Options, ParamsResult} from '../types'
 
 const logger = debug('env-ssm')
 
@@ -12,35 +12,38 @@ export const ssm = {
   }
 }
 
-export function getParamsFromEnv (paramsToGet: string[]): GetParamsResult {
-  const found: ParametersFound = {}
-  const missing: string[] = []
-
+export function getParamsFromEnv (params: ParamsResult, options: Options): ParamsResult {
   const existingEnvVars = Object.keys(process.env)
-  paramsToGet.forEach(paramName => {
+
+  // Check for prefix in env variables and add to missing if not
+  if (options.prefix) {
+    if (existingEnvVars.includes(options.prefix)) {
+      options.prefix = process.env[options.prefix]
+    }
+  }
+
+  // Check for parameters in environment
+  params.missing.forEach(paramName => {
     if (existingEnvVars.includes(paramName)) {
-      Object.defineProperty(found, paramName, {
+      Object.defineProperty(params.found, paramName, {
         value: process.env[paramName],
         writable: false
       })
-    } else {
-      missing.push(paramName)
     }
   })
-  if (missing.length === 0) {
+
+  if (params.missing.length === 0) {
     logger('Set parameters entirely from environment variables')
-  } else if (Object.keys(found).length > 0) {
+  } else if (Object.keys(params.found).length > 0) {
     logger('Got some (but not all) parameters from environment variables')
   }
-  return { found, missing }
+
+  return params
 }
 
 // Exported for test purposes
-export async function getParamsFromSSM (paramsToGet: string[], options: Options = {}): Promise<GetParamsResult> {
+export async function getParamsFromSSM (params: ParamsResult, options: Options = {}): Promise<ParamsResult> {
   logger('Trying to get parameters from AWS SSM (EC2 Parameter Store)')
-
-  const found: ParametersFound = {}
-  let missing: ParametersMissing = []
 
   if (options.prefix){
     if (options.prefix.startsWith('/') && !options.prefix.endsWith('/')) options.prefix += '/'
@@ -49,20 +52,23 @@ export async function getParamsFromSSM (paramsToGet: string[], options: Options 
 
   const ssmResponse = await ssm.getParameters({
     WithDecryption: true,
-    Names: paramsToGet.map(name => `${options.prefix || ''}${name}`)
+    Names: params.missing.map(name => `${options.prefix || ''}${name}`)
   }, options.region)
 
   if (ssmResponse.Parameters) {
     ssmResponse.Parameters.forEach(({ Name, Value }) => {
       if (Name && Value) {
         const key = options.prefix ? Name.substring(options.prefix.length) : Name
-        found[key] = Value
+        params.found[key] = Value
+
+        // Remove entry from missing
+        const index = params.missing.indexOf(key)
+        if (index !== -1) {
+          params.missing.splice(index, 1)
+        }
       }
     })
   }
-  if (ssmResponse.InvalidParameters) {
-    missing = ssmResponse.InvalidParameters.map(param => options.prefix ? param.substring(options.prefix.length) : param)
-  }
 
-  return { found, missing }
+  return params
 }

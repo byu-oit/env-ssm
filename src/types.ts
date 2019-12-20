@@ -7,4 +7,4 @@ export type ParametersFound = Record<string, string>
 
 export type ParametersMissing = string []
 
-export type GetParamsResult = { found: ParametersFound; missing: ParametersMissing }
+export type ParamsResult = { expected: string[], found: ParametersFound; missing: ParametersMissing }
