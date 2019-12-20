@@ -1,10 +1,10 @@
 import {Options, ParametersFound, ParamsResult} from './types'
-import {getParamsFromEnv, getParamsFromSSM} from './lib'
+import {getParamsFromEnv, getParamsFromSSM, isEmptyObj} from './lib'
 
-export let params: ParametersFound
+export let params: ParametersFound = {}
 
 export async function getParams(expectedParams: string[], options: Options = {}): Promise<ParametersFound> {
-  if (params) {
+  if (isEmptyObj(params)) {
     return params
   }
 
@@ -12,7 +12,7 @@ export async function getParams(expectedParams: string[], options: Options = {})
 
   result = getParamsFromEnv(result, options)
   if (result.missing.length === 0) {
-    params = result.found
+    params = {...params, ...result.found}
     return params
   }
 
@@ -23,6 +23,6 @@ export async function getParams(expectedParams: string[], options: Options = {})
   }
 
   console.log('Successfully retrieved all parameters')
-  params = result.found
+  params = {...params, ...result.found}
   return params
 }
