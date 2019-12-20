@@ -1,6 +1,6 @@
 export interface Options {
-  prefix: string
-  region: string
+  prefix?: string
+  region?: string
 }
 
 export type ParametersFound = Record<string, string>

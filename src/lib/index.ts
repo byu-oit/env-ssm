@@ -36,7 +36,7 @@ export function getParamsFromEnv (paramsToGet: string[]): GetParamsResult {
 }
 
 // Exported for test purposes
-export async function getParamsFromSSM (paramsToGet: string[], options: Options): Promise<GetParamsResult> {
+export async function getParamsFromSSM (paramsToGet: string[], options: Options = {}): Promise<GetParamsResult> {
   logger('Trying to get parameters from AWS SSM (EC2 Parameter Store)')
 
   const found: ParametersFound = {}
@@ -55,13 +55,13 @@ export async function getParamsFromSSM (paramsToGet: string[], options: Options)
   if (ssmResponse.Parameters) {
     ssmResponse.Parameters.forEach(({ Name, Value }) => {
       if (Name && Value) {
-        const key = Name.substring(options.prefix.length) // Anything after the prefix
+        const key = options.prefix ? Name.substring(options.prefix.length) : Name
         found[key] = Value
       }
     })
   }
   if (ssmResponse.InvalidParameters) {
-    missing = ssmResponse.InvalidParameters.map(param => param.substring(options.prefix.length))
+    missing = ssmResponse.InvalidParameters.map(param => options.prefix ? param.substring(options.prefix.length) : param)
   }
 
   return { found, missing }
