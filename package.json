@@ -6,7 +6,7 @@
     "Gary Crye <gary_crye@byu.edu>",
     "Spencer Tuft <spencer.tuft@byu.edu>"
   ],
-  "main": "dist.index.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "del dist && tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
