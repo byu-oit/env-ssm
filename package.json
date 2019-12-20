@@ -1,0 +1,37 @@
+{
+  "name": "@byu-oit/env-ssm",
+  "version": "0.0.0",
+  "description": "Gets params from your environment first, then from the ssm parameter store.",
+  "contributors": [
+    "Gary Crye <gary_crye@byu.edu>",
+    "Spencer Tuft <spencer.tuft@byu.edu>"
+  ],
+  "main": "dist.index.js",
+  "scripts": {
+    "build": "del dist && tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/byu-oit/env-ssm.git"
+  },
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/byu-oit/env-ssm/issues"
+  },
+  "homepage": "https://github.com/byu-oit/env-ssm#readme",
+  "dependencies": {
+    "aws-sdk": "^2.595.0",
+    "debug": "^4.1.1"
+  },
+  "devDependencies": {
+    "@types/debug": "^4.1.5",
+    "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
+    "del-cli": "^3.0.0",
+    "mocha": "^6.2.2",
+    "sinon": "^7.5.0",
+    "sinon-chai": "^3.3.0",
+    "typescript": "^3.7.3"
+  }
+}
