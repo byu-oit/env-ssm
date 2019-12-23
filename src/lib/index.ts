@@ -5,10 +5,6 @@ import {Options, ParamsResult} from '../types'
 
 const logger = debug('env-ssm')
 
-export function isEmptyObj (obj: Object) {
-  return Object.getOwnPropertyNames(obj).length === 0
-}
-
 export const ssm = {
   getParameters: (ssmParams: SSM.Types.GetParametersRequest, region: string = 'us-west-2'): Promise<SSM.Types.GetParametersResult> => {
     const ssm = new AWS.SSM({ apiVersion: '2014-11-06', region })
