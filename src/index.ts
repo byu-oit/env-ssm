@@ -4,11 +4,14 @@ import {getParamsFromEnv, getParamsFromSSM} from './lib'
 export let params: ParametersFound = {}
 
 export async function getParams(expectedParams: string[], options: Options = {}): Promise<ParametersFound> {
-  if (expectedParams.every(k => k in params)) {
-    return params
+  let result: ParamsResult = { expected: expectedParams, found: {}, missing: []}
+
+  for (const expectedParam of expectedParams) {
+    if (!(expectedParam in params)) result.missing.push(expectedParam)
+    else result.found[expectedParam] = params[expectedParam]
   }
 
-  let result: ParamsResult = { expected: [], found: {}, missing: expectedParams}
+  if (!result.missing.length) return params
 
   result = getParamsFromEnv(result, options)
   if (result.missing.length === 0) {
