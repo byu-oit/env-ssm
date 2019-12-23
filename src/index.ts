@@ -3,7 +3,7 @@ import {getParamsFromEnv, getParamsFromSSM} from './lib'
 
 export let params: ParametersFound = {}
 
-export async function getParams(expectedParams: string[], options: Options = {}): Promise<ParametersFound> {
+export async function getParams(expectedParams: string[] = [], options: Options = {}): Promise<ParametersFound> {
   let result: ParamsResult = { expected: expectedParams, found: {}, missing: []}
 
   for (const expectedParam of expectedParams) {
