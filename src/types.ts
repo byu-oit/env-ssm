@@ -3,7 +3,7 @@ export interface Options {
   region?: string
 }
 
-export type ParametersFound = Record<string, string>
+export type ParametersFound = {[key: string]: string}
 
 export type ParametersMissing = string []
 

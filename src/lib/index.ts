@@ -13,22 +13,16 @@ export const ssm = {
 }
 
 export function getParamsFromEnv (params: ParamsResult, options: Options): ParamsResult {
-  const existingEnvVars = Object.keys(process.env)
-
-  // Check for prefix in env variables and add to missing if not
-  if (options.prefix) {
-    if (existingEnvVars.includes(options.prefix)) {
-      options.prefix = process.env[options.prefix]
-    }
-  }
-
   // Check for parameters in environment
   params.missing.forEach(paramName => {
-    if (existingEnvVars.includes(paramName)) {
-      Object.defineProperty(params.found, paramName, {
-        value: process.env[paramName],
-        writable: false
-      })
+    if (paramName in process.env) {
+      params.found = {...params.found, [paramName]: process.env[paramName] as string}
+
+      // Remove entry from missing
+      const index = params.missing.indexOf(paramName)
+      if (index !== -1) {
+        params.missing.splice(index, 1)
+      }
     }
   })
 
@@ -45,11 +39,13 @@ export function getParamsFromEnv (params: ParamsResult, options: Options): Param
 export async function getParamsFromSSM (params: ParamsResult, options: Options = {}): Promise<ParamsResult> {
   logger('Trying to get parameters from AWS SSM (EC2 Parameter Store)')
 
+  // Normalize ssm parameter prefix
   if (options.prefix){
     if (options.prefix.startsWith('/') && !options.prefix.endsWith('/')) options.prefix += '/'
     else if (!options.prefix.endsWith('.')) options.prefix += '.'
   }
 
+  // Retrieve missing parameters from ssm
   const ssmResponse = await ssm.getParameters({
     WithDecryption: true,
     Names: params.missing.map(name => `${options.prefix || ''}${name}`)

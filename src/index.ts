@@ -1,5 +1,8 @@
+import debug from 'debug'
 import {Options, ParametersFound, ParamsResult} from './types'
 import {getParamsFromEnv, getParamsFromSSM} from './lib'
+
+const logger = debug('env-ssm')
 
 export let params: ParametersFound = {}
 
@@ -11,7 +14,17 @@ export async function getParams(expectedParams: string[] = [], options: Options 
     else result.found[expectedParam] = params[expectedParam]
   }
 
+  // Return params if not missing any expected
   if (!result.missing.length) return params
+
+  // Check for prefix in env variables
+  if (options.prefix) {
+    if (options.prefix in process.env) {
+      logger(`Found SSM prefix "${options.prefix}" in environment variables`)
+      options.prefix = process.env[options.prefix]
+    }
+    logger(`SSM Prefix is: ${options.prefix}`)
+  }
 
   result = getParamsFromEnv(result, options)
   if (result.missing.length === 0) {
