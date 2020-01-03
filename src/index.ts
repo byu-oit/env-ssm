@@ -38,7 +38,7 @@ export async function getParams(expectedParams: string[] = [], options: Options 
     throw new Error('Unable to retrieve all parameters')
   }
 
-  console.log('Successfully retrieved all parameters')
+  logger('Successfully retrieved all parameters')
   params = {...params, ...result.found}
   return params
 }
