@@ -1,6 +1,7 @@
 import debug from 'debug'
 import {Options, ParametersFound, ParamsResult} from './types'
 import {getParamsFromEnv, getParamsFromSSM} from './lib'
+import omit from 'lodash.omit'
 
 const logger = debug('env-ssm')
 
@@ -17,13 +18,14 @@ export async function getParams(expectedParams: string[] = [], options: Options 
   // Return params if not missing any expected
   if (!result.missing.length) return params
 
-  // Check for prefix in env variables
+  // Resolve prefix
   if (options.prefix) {
-    if (options.prefix in process.env) {
-      logger(`Found SSM prefix "${options.prefix}" in environment variables`)
-      options.prefix = process.env[options.prefix]
+    try {
+      const prefixResult = await getParams([options.prefix], omit(options, ['prefix']))
+      options.prefix = prefixResult[options.prefix] // Replace prefix
+    } finally { // Ignore errors when resolving prefix
+      logger(`SSM Prefix is: ${options.prefix}`)
     }
-    logger(`SSM Prefix is: ${options.prefix}`)
   }
 
   result = getParamsFromEnv(result, options)
