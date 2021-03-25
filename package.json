@@ -11,6 +11,7 @@
   "scripts": {
     "build": "del dist && tsc",
     "coverage": "npm run test -- --coverage",
+    "lint": "ts-standard",
     "test": "jest"
   },
   "repository": {
@@ -32,6 +33,7 @@
     "del-cli": "^3.0.0",
     "env-var": "^7.0.0",
     "ts-jest": "^26.5.4",
+    "ts-standard": "^10.0.0",
     "typescript": "^3.7.3"
   },
   "jest": {
