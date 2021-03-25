@@ -2,10 +2,14 @@ import {SSMClient, GetParametersByPathCommandOutput} from '@aws-sdk/client-ssm'
 import {from} from 'env-var'
 import EnvSsm from '../src/env-ssm'
 
+/**
+ * Using Object.assign to get correct typings while mocking the send function.
+ * Javascript equivalent:
+ * let ssm = new SSMClient({region: 'us-west-2'})
+ * ssm.send = jest.fn()
+ */
 let ssm = Object.assign(
-    // Creates ssm client
     new SSMClient({region: 'us-west-2'}),
-    // Mocked methods are fully typed
     {
         send: jest.fn()
     }
