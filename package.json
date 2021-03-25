@@ -10,7 +10,8 @@
   "types": "dist/env-ssm.d.ts",
   "scripts": {
     "build": "del dist && tsc",
-    "test": "ts-jest"
+    "coverage": "npm run test -- --coverage",
+    "test": "jest"
   },
   "repository": {
     "type": "git",
