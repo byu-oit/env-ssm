@@ -1,106 +1,106 @@
-import { SSMClient, GetParametersByPathCommand } from '@aws-sdk/client-ssm'
+import {GetParametersByPathCommand, Parameter, SSMClient} from '@aws-sdk/client-ssm'
+import {from} from 'env-var'
+import Debugger from 'debug'
+const logger = Debugger('env-ssm')
 
+export type Path = { path: string, trim?: string }
 export interface Options {
-  /**
+    /**
+     * Specify an SSMClient to use for the request(s)
+     */
+    ssm?: SSMClient
+
+    /**
+     * The Path to use in the GetParametersByPathCommand
+     */
+    paths: string | Path | (string | Path)[]
+
+    /**
      * Removes part of the path that matches the trim (default true).
      */
-  trim?: boolean | string
-  /**
+    trim?: boolean
+
+    /**
      * Adds process.env variables to the container (default false).
      * Behavior only changes when used on the global level.
      */
-  processEnv?: boolean
+    processEnv?: boolean
+}
+export interface ResolvedOptions extends Required<Options> {
+    paths: Path[]
 }
 
-export default class EnvSsm {
-  private readonly ssm: SSMClient
-  private readonly trim?: Options['trim']
-  private readonly processEnv: Options['processEnv']
+/**
+ * Coerces path input to Path object
+ */
+function resolvePath (path: string | Path): Path {
+    return typeof path === 'string' ? {path} : path
+}
 
-  private promises: Array<Promise<NodeJS.ProcessEnv>> = []
+/**
+ * Coerces input options into a more consistent format and setting defaults
+ */
+async function resolveOptions(options: Options): Promise<ResolvedOptions> {
+    const trim = options.trim === undefined ? true : options.trim
+    const processEnv = options.processEnv === undefined ? true : options.processEnv
 
-  /**
-     * Alias for EnvSsm constructor
-     */
-  static from (ssm: SSMClient, options?: Options): EnvSsm {
-    return new EnvSsm(ssm, options)
-  }
+    // Convert all path inputs into "Path" objects
+    const paths = !Array.isArray(options.paths)
+        ? [resolvePath(options.paths)]
+        : options.paths.map(resolvePath)
 
-  /**
-     * Alias for EnvSsm.prototype.fetch method
-     */
-  static async fetch (ssm: SSMClient, path: string, options?: Options): Promise<NodeJS.ProcessEnv> {
-    return await EnvSsm.from(ssm, options).fetch(path)
-  }
+    // Import ssm client if not provided (optional dependency)
+    const ssm: SSMClient = !options.ssm
+        ? new (await import('@aws-sdk/client-ssm')).SSMClient({})
+        : options.ssm
 
-  constructor (ssm: SSMClient, options: Options = {}) {
-    this.ssm = ssm
-    this.trim = options.trim === undefined ? true : options.trim
-    this.processEnv = options.processEnv === true
-  }
+    return {trim, processEnv, ssm, paths}
+}
 
-  /**
-     * Shortcut for making a single GetParametersByPath request
-     */
-  async fetch (path: string, options: Options = {}): Promise<NodeJS.ProcessEnv> {
-    return await this.path(path, options).load()
-  }
+/**
+ * Creates an environment container from a SSM Parameter Store path
+ */
+export default async function EnvSsm(input: string | string[] | Path[] | Options) {
+    const options = typeof input === 'string' || Array.isArray(input) ? {paths: input} : input
+    const {ssm, paths, trim, processEnv} = await resolveOptions(options)
 
-  /**
-     * Adds GetParametersByPath request to the batch.
-     */
-  path (path: string, options: Options = {}): this {
-    const command = new GetParametersByPathCommand({
-      Path: path,
-      Recursive: true
-    })
-    const promise = this.ssm.send(command)
-      .then(data => {
-        const { Parameters: parameters = [] } = data
+    // Make requests and combine all results into an array of parameters
+    // Ensure each parameter has the "Path" that was used to retrieve it
+    const parameters = await Promise.all(paths.map(async ({path, trim}) => {
+        // Create request
+        const command = new GetParametersByPathCommand({Path: path, Recursive: true})
 
-        // Combine all parameters into an environment container, aka NodeJS.ProcessEnv
-        return parameters.reduce<NodeJS.ProcessEnv>((agg, { Name: name, Value: value }) => {
-          if (name == null) return agg // Shouldn't get here
+        const response: (Parameter & {Path: Path})[] = []
+        try {
+            // Send request and transform response
+            const {Parameters = []} = await ssm.send(command)
+            for (const param of Parameters) {
+                response.push(({...param, Path: {path, trim}}))
+            }
+        } catch (e) {
+            // It's possible that the parameter is not required, so we'll handle failed responses and only warn if
+            // verbose logging is turned on via the DEBUG environment variable
+            logger(`Cannot resolve path from AWS SSM '${path}': ${e.message}`)
+        }
+        return response
+    })).then(parameters => parameters.flat()) // Flatten all responses
 
-          // Use global trim if a local trim isn't defined
-          const trim = options.trim !== undefined ? options.trim : this.trim
+    // Combine all parameters into an environment container, aka NodeJS.ProcessEnv
+    const container = parameters.reduce<NodeJS.ProcessEnv>((agg, {Path, Name, Value}) => {
+        if (Name == null) return agg // Shouldn't get here
 
-          // Derive the part of the path to remove (if any)
-          let match
-          if (typeof trim === 'string') {
-            // Local trim
-            match = trim + '/'
-          } else if (trim === true) {
-            // Global trim
-            match = path + '/'
-          } else {
-            // No trim
-            match = ''
-          }
+        // Derive the part of the path to remove (if any)
+        let match = Path.trim
+        if (!match && trim) match = Path.path
+        if (match && !match.endsWith('/')) match += '/'
 
-          // Apply trim to parameter name
-          const key = trim != null ? name.replace(match, '') : name
+        // Trim parameter name
+        // TODO - Improve trimming
+        const key = match ? Name.replace(match, '') : Name
 
-          // Add parameter into environment container
-          return { ...agg, [key]: value }
-        }, {}) // Do not initialize with process.env here to optimize resolution time
-      })
-      .catch((e: Error) => {
-        throw new Error(`Cannot resolve path from AWS SSM '${path}': ${e.message}`)
-      })
+        // Add parameter into environment container
+        return {...agg, [key]: Value}
+    }, processEnv ? process.env : {})
 
-    // Add to list of ssm requests
-    this.promises.push(promise)
-    return this
-  }
-
-  /**
-     * Completes GetParametersByPath requests and aggregates results into environment container.
-     */
-  async load (): Promise<NodeJS.ProcessEnv> {
-    const envs = await Promise.all(this.promises)
-    this.promises.length = 0 // clear previous requests
-    const container = this.processEnv === true ? process.env : {}
-    return envs.reduce((env, cur) => ({ ...env, ...cur }), container)
-  }
+    return from(container)
 }

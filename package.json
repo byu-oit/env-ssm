@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/byu-oit/env-ssm#readme",
   "dependencies": {
-    "debug": "^4.1.1"
+    "debug": "^4.3.1"
   },
   "devDependencies": {
     "@aws-sdk/client-ssm": "^3.9.0",
@@ -35,6 +35,12 @@
     "ts-jest": "^26.5.4",
     "ts-standard": "^10.0.0",
     "typescript": "^3.7.3"
+  },
+  "peerDependencies": {
+    "env-var": "^7.0.0"
+  },
+  "optionalDependencies": {
+    "@aws-sdk/client-ssm": ">=3"
   },
   "jest": {
     "transform": {

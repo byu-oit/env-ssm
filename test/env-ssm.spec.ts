@@ -1,34 +1,19 @@
-import {SSMClient, GetParametersByPathCommandOutput} from '@aws-sdk/client-ssm'
-import {from} from 'env-var'
+import {SSMClient} from './__mocks__/@aws-sdk/client-ssm'
 import EnvSsm from '../src/env-ssm'
 
-/**
- * Using Object.assign to get correct typings while mocking the send function.
- * Javascript equivalent:
- * let ssm = new SSMClient({region: 'us-west-2'})
- * ssm.send = jest.fn()
- */
-let ssm = Object.assign(
-    new SSMClient({region: 'us-west-2'}),
-    {
-        send: jest.fn()
-    }
-)
-
-afterEach(() => {
-    ssm.send.mockReset()
-})
+let ssm = new SSMClient({region: 'us-west-2'})
 
 test('returns an empty object when no parameters are found for a given path', async () => {
     ssm.send.mockResolvedValueOnce({})
-    const envSsm = await EnvSsm.fetch(ssm, '/some/path')
-    expect(from(envSsm).get()).toEqual({})
+    const paths = '/some/path'
+    const env = await EnvSsm({paths, processEnv: false})
+    expect(env.get()).toEqual({})
 })
 
-test('return an object of parameters without the path prefix', async () => {
+test('return environment variables without the path prefix by default', async () => {
     const path = '/some/path'
     const params = ['0', '1']
-    const output: GetParametersByPathCommandOutput = {
+    const output = {
         $metadata: {},
         Parameters: params.map(name => ({
             Name: `${path}/${name}`,
@@ -36,15 +21,15 @@ test('return an object of parameters without the path prefix', async () => {
         }))
     }
     ssm.send.mockResolvedValueOnce(output)
-    const env = from(await EnvSsm.fetch(ssm, path))
+    const env = await EnvSsm(path)
     expect(env.get(params[0]).asInt()).toEqual(0)
     expect(env.get(params[1]).asInt()).toEqual(1)
 })
 
-test('return an object of parameters with the path prefix', async () => {
+test('return environment variables with the path prefix', async () => {
     const path = '/some/path'
     const params = ['0', '1']
-    const output: GetParametersByPathCommandOutput = {
+    const output = {
         $metadata: {},
         Parameters: params.map(name => ({
             Name: `${path}/${name}`,
@@ -52,16 +37,17 @@ test('return an object of parameters with the path prefix', async () => {
         }))
     }
     ssm.send.mockResolvedValueOnce(output)
-    const env = from(await EnvSsm.fetch(ssm, path, {trim: false}))
+    const env = await EnvSsm({paths: path, trim: false})
     expect(env.get(`${path}/${params[0]}`).asInt()).toEqual(0)
     expect(env.get(`${path}/${params[1]}`).asInt()).toEqual(1)
 })
 
-test('return an object of parameters with a trimmed path prefix', async () => {
+test('return environment variables with a trimmed path prefix', async () => {
     const path = '/some/path'
     const trim = '/some'
+    const trimmed = 'path'
     const params = ['0', '1']
-    const output: GetParametersByPathCommandOutput = {
+    const output = {
         $metadata: {},
         Parameters: params.map(name => ({
             Name: `${path}/${name}`,
@@ -69,12 +55,39 @@ test('return an object of parameters with a trimmed path prefix', async () => {
         }))
     }
     ssm.send.mockResolvedValueOnce(output)
-    const env = from(await EnvSsm.fetch(ssm, path, {trim}))
-    expect(env.get(`${path.replace(trim + '/', '')}/${params[0]}`).asInt()).toEqual(0)
-    expect(env.get(`${path.replace(trim + '/', '')}/${params[1]}`).asInt()).toEqual(1)
+    const env = await EnvSsm({paths: [{path, trim}] })
+    expect(env.get(`${trimmed}/${params[0]}`).asInt()).toEqual(0)
+    expect(env.get(`${trimmed}/${params[1]}`).asInt()).toEqual(1)
 })
 
-test('propagates AWS errors', async () => {
+test('ssm variables overwrite local variables by default', async () => {
+    const path = '/some/path'
+    const params = ['0', '1']
+    const output = {
+        $metadata: {},
+        Parameters: params.map(name => ({
+            Name: `${path}/${name}`,
+            Value: name
+        }))
+    }
+    ssm.send.mockResolvedValueOnce(output)
+    process.env = {[params[1]]: '-1'}
+    const env = await EnvSsm({paths: [{path}] })
+    expect(env.get(params[0]).asInt()).toEqual(0)
+    expect(env.get(params[1]).asInt()).toEqual(1)
+})
+
+test('use custom ssm client', async () => {
+    const path = '/some/path'
+    ssm.send.mockResolvedValueOnce({})
+    await EnvSsm({paths: path, ssm})
+    expect(ssm.send).toBeCalled()
+})
+
+// TODO - Silence only some AWS errors and allow others to propagate
+test('silence AWS errors', async () => {
+    const path = '/some/path'
     ssm.send.mockRejectedValueOnce(Error('Fake Error'))
-    await expect(() => EnvSsm.fetch(ssm, '/some/path')).rejects.toThrow()
+    const env = await EnvSsm({paths: path, processEnv: false})
+    await expect(env.get()).toEqual({})
 })
