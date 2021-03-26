@@ -11,7 +11,8 @@
   "scripts": {
     "build": "del dist && tsc",
     "coverage": "npm run test -- --coverage",
-    "lint": "ts-standard",
+    "lint": "ts-standard | snazzy",
+    "lint:fix": "ts-standard --fix | snazzy",
     "test": "jest"
   },
   "repository": {
@@ -30,12 +31,13 @@
     "@aws-sdk/client-ssm": "^3.9.0",
     "@types/debug": "^4.1.5",
     "@types/jest": "^26.0.21",
-    "del-cli": "^3.0.0",
+    "del-cli": "^3.0.1",
     "env-var": "^7.0.0",
     "lint-staged": "^10.5.4",
+    "snazzy": "^9.0.0",
     "ts-jest": "^26.5.4",
     "ts-standard": "^10.0.0",
-    "typescript": "^3.7.3"
+    "typescript": "^4.2.3"
   },
   "peerDependencies": {
     "env-var": "^7.0.0"
@@ -49,6 +51,6 @@
     }
   },
   "lint-staged": {
-    "*.tsx?": "ts-standard --fix"
+    "*.tsx": "npm run lint:fix"
   }
 }
