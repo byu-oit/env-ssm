@@ -13,11 +13,12 @@
   ],
   "scripts": {
     "build": "del dist && tsc",
-    "coverage": "npm run test -- --coverage",
+    "coverage": "npm run test -- --coverage || exit 0",
     "lint": "ts-standard | snazzy",
     "lint:fix": "ts-standard --fix | snazzy",
     "test": "jest",
-    "prepublishOnly": "npm run lint && npm build && npm test"
+    "test:watch": "jest --watch",
+    "prepublishOnly": "npm run lint && npm run build && npm run coverage"
   },
   "repository": {
     "type": "git",
@@ -52,6 +53,14 @@
   "jest": {
     "transform": {
       "^.+\\.(ts|tsx)$": "ts-jest"
+    },
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": -10
+      }
     }
   },
   "lint-staged": {
