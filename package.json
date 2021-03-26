@@ -8,12 +8,16 @@
   ],
   "main": "dist/env-ssm.js",
   "types": "dist/env-ssm.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
   "scripts": {
     "build": "del dist && tsc",
     "coverage": "npm run test -- --coverage",
     "lint": "ts-standard | snazzy",
     "lint:fix": "ts-standard --fix | snazzy",
-    "test": "jest"
+    "test": "jest",
+    "prepublishOnly": "npm run lint && npm build && npm test"
   },
   "repository": {
     "type": "git",
