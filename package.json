@@ -1,6 +1,6 @@
 {
   "name": "@byu-oit/env-ssm",
-  "version": "3.0.0-2",
+  "version": "3.0.0-3",
   "description": "Gets params from your environment first, then from the ssm parameter store.",
   "contributors": [
     "Gary Crye <gary_crye@byu.edu>",
