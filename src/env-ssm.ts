@@ -1,6 +1,9 @@
 import { GetParametersByPathCommand, Parameter, SSMClient } from '@aws-sdk/client-ssm'
 import { ExtenderType, ExtenderTypeOptional, Extensions, from, IEnv, IOptionalVariable, IPresentVariable } from 'env-var'
+import globby from 'globby'
+import * as dottfvars from '@byu-oit/dottfvars'
 import Debugger from 'debug'
+import * as path from "path";
 const logger = Debugger('env-ssm')
 
 export interface Path { path: string, trim?: string }
@@ -21,13 +24,18 @@ export interface Options {
   trim?: boolean
 
   /**
-     * Adds process.env variables to the container (default false).
-     * Behavior only changes when used on the global level.
+     * Adds process.env variables to the container (default true).
      */
   processEnv?: boolean
+
+  /**
+   * Adds tfvars variables to the container (default true)
+   */
+  tfvars?: string | boolean
 }
 export interface ResolvedOptions extends Required<Options> {
   paths: Path[]
+  tfvars: string | false
 }
 
 export type EnvVar<T extends Extensions = {}> = IEnv<IPresentVariable<T> & ExtenderType<T>, IOptionalVariable<T> & ExtenderTypeOptional<T>>
@@ -46,6 +54,13 @@ async function resolveOptions (options: Options): Promise<ResolvedOptions> {
   const trim = options.trim === undefined ? true : options.trim
   const processEnv = options.processEnv === undefined ? true : options.processEnv
 
+  let tfvars: undefined | false | string = globby.sync(path.join(process.cwd(), './*.tfvars*'))[0]
+  if (typeof options.tfvars === 'string') {
+    tfvars = path.join(process.cwd(), options.tfvars)
+  } else if (options.tfvars == null) {
+    tfvars = false
+  }
+
   // Convert all path inputs into "Path" objects
   const paths = !Array.isArray(options.paths)
     ? [resolvePath(options.paths)]
@@ -56,7 +71,7 @@ async function resolveOptions (options: Options): Promise<ResolvedOptions> {
     ? new (await import('@aws-sdk/client-ssm')).SSMClient({})
     : options.ssm
 
-  return { trim, processEnv, ssm, paths }
+  return { trim, processEnv, tfvars, ssm, paths }
 }
 
 /**
@@ -64,10 +79,16 @@ async function resolveOptions (options: Options): Promise<ResolvedOptions> {
  */
 export default async function EnvSsm (input: string | string[] | Path[] | Options): Promise<EnvVar> {
   const options = typeof input === 'string' || Array.isArray(input) ? { paths: input } : input
-  const { ssm, paths, trim, processEnv } = await resolveOptions(options)
+  const { ssm, paths, trim, processEnv, tfvars } = await resolveOptions(options)
+
+  if (tfvars) {
+    logger(`Checking for local tfvars files`)
+    dottfvars.from(tfvars)
+  }
 
   // Make requests and combine all results into an array of parameters
   // Ensure each parameter has the "Path" that was used to retrieve it
+  logger(`Checking ssm for parameters`)
   const parameters = await Promise.all(paths.map(async ({ path, trim }) => {
     // Create request
     const command = new GetParametersByPathCommand({ Path: path, Recursive: true })

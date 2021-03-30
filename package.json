@@ -30,7 +30,9 @@
   },
   "homepage": "https://github.com/byu-oit/env-ssm#readme",
   "dependencies": {
-    "debug": "^4.3.1"
+    "@byu-oit/dottfvars": "^0.0.1",
+    "debug": "^4.3.1",
+    "globby": "^10.0.2"
   },
   "devDependencies": {
     "@aws-sdk/client-ssm": "^3.9.0",
@@ -59,7 +61,7 @@
         "branches": 80,
         "functions": 80,
         "lines": 80,
-        "statements": -10
+        "statements": 80
       }
     }
   },
