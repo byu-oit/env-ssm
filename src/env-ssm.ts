@@ -3,7 +3,7 @@ import { ExtenderType, ExtenderTypeOptional, Extensions, from, IEnv, IOptionalVa
 import globby from 'globby'
 import * as dottfvars from '@byu-oit/dottfvars'
 import Debugger from 'debug'
-import * as path from "path";
+import * as path from 'path'
 const logger = Debugger('env-ssm')
 
 export interface Path { path: string, trim?: string }
@@ -82,13 +82,13 @@ export default async function EnvSsm (input: string | string[] | Path[] | Option
   const { ssm, paths, trim, processEnv, tfvars } = await resolveOptions(options)
 
   if (tfvars) {
-    logger(`Checking for local tfvars files`)
+    logger('Checking for local tfvars files')
     dottfvars.from(tfvars)
   }
 
   // Make requests and combine all results into an array of parameters
   // Ensure each parameter has the "Path" that was used to retrieve it
-  logger(`Checking ssm for parameters`)
+  logger('Checking ssm for parameters')
   const parameters = await Promise.all(paths.map(async ({ path, trim }) => {
     // Create request
     const command = new GetParametersByPathCommand({ Path: path, Recursive: true })
