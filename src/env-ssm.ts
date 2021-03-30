@@ -81,7 +81,7 @@ export default async function EnvSsm (input: string | string[] | Path[] | Option
   const options = typeof input === 'string' || Array.isArray(input) ? { paths: input } : input
   const { ssm, paths, trim, processEnv, tfvars } = await resolveOptions(options)
 
-  if (tfvars) {
+  if (tfvars !== false) {
     logger('Checking for local tfvars files')
     dottfvars.from(tfvars)
   }

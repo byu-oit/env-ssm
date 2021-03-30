@@ -66,6 +66,6 @@
     }
   },
   "lint-staged": {
-    "*.tsx?": "npm run lint:fix"
+    "*.ts": "npm run lint:fix"
   }
 }

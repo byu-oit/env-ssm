@@ -83,7 +83,7 @@ test('ssm variables overwrite local tfvars by default', async () => {
   const output = {
     $metadata: {},
     Parameters: [{
-      Name: `${path}/${[params[1]]}`,
+      Name: `${path}/${params[1]}`,
       Value: params[1]
     }]
   }
