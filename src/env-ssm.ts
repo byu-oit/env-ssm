@@ -146,7 +146,6 @@ async function loadSsmParams (options: ResolvedOptions): Promise<NodeJS.ProcessE
       : Name.replace(Path + '/', '').split('/').join('.')
 
     // Add parameter into environment container
-    // db/password => DB.PASSWORD => env.get('DB').fromJSONObject().PASSWORD
     return set(agg, path, Value)
   }, {})
 }
