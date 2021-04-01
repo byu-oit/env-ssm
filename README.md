@@ -34,7 +34,7 @@ SSM Parameters:
 import EnvSsm from 'env-ssm'
 
 /**
- * @returns{db: {user: 'admin', pass: 'ch@ng3m3'}, host: 'example.com'}
+ * @returns {db: {user: 'admin', pass: 'ch@ng3m3'}, host: 'example.com'}
  */
 async function getParams() {
     const env = await EnvSsm(path)
@@ -53,7 +53,7 @@ SSM Parameters:
 - /my/app/db/user => `admin`
 
 ```hcl-terraform
-# .tfvars file
+# local.tfvars file located in current working directory
 db = {
   user = 'user'
   pass = 'ch@ng3m3'
@@ -62,16 +62,25 @@ host = 'JohnDoe.com'
 ```
 
 ```dotenv
-# .env file
+# .env file located in current working directory
 host='example.com'
 ```
 
 ```ts
 /**
- * @returns{db: {user: 'user', pass: 'ch@ng3m3'}, host: 'JohnDoe.com'}
+ * @returns {db: {user: 'user', pass: 'ch@ng3m3'}, host: 'JohnDoe.com'}
  */
 async function getParams() {
-    const env = await EnvSsm(path)
+    const env = await EnvSsm({
+        // Allows multiple paths
+        paths: [path],
+        
+        // Specify file name relative to process.cwd()
+        tfvars: 'local.tfvars',
+        
+        // By default, checks process.cwd() + '/.env' or else specify a file name relative to process.cwd()
+        // dotenv: .env
+    })
     const db = env.get('db').required().asJsonObject()
     const host = env.get('api').required().asString()
     return { db, host }
