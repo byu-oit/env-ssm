@@ -11,10 +11,69 @@ Variables load (and are overwritten if duplicates are found) in the following or
 
 ## Options
 
-| Option     | Type                                                                                              | Description                                                                                                                                                                                                                 | Default                   |
-|:-----------|:--------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------------------|
-| ssm        | [SSMClient](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-ssm/index.html) | An AWS SSM client instance. The [default SSM client can be configured with environment variables](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/setup-credentials.html) or a custom instance may be provided. | SSMClient                 |
-| paths      | string \| string[]                                                                                | The prefix to attach to the beginning of the parameter name. Can also be the key of an environment variable whose value will be the prefix.                                                                                 | **Required**              |
-| processEnv | boolean                                                                                           | If true, the process.env object will be the base for storing parameters retrieved from the parameter store.                                                                                                                 | true                      |
-| tfvars     | string                                                                                            | Adds local tfvars variables to the environment. These will overwrite anything already in process.env and will be overwritten by retrieved SSM parameters.                                                                   | false                     |
-| dotenv     | boolean \| string                                                                                 | Adds local .env variables to the environment.                                                                                                                                                                               | `process.cwd() + '/.env'` |
+| Option     | Type                                                                                              | Description                                                                                                                                                                                                                      | Default                   |
+|:-----------|:--------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------------------|
+| ssm        | [SSMClient](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-ssm/index.html) | An AWS SSM client instance. The [default SSM client can be configured with environment variables](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/setup-credentials.html) or a custom instance may be provided.      | SSMClient                 |
+| paths      | string \| string[]                                                                                | The SSM parameter store path to use. All parameters that fall under this path will be returned as properties in the environment variables object. Parameters with multiple nested children will be returned as stringified JSON. | **Required**              |
+| processEnv | boolean                                                                                           | If true, it will add process.env variables to the container.                                                                                                                                                                     | true                      |
+| tfvars     | string                                                                                            | Adds local tfvars variables to the environment. These will overwrite anything already in process.env and will be overwritten by retrieved SSM parameters.                                                                        | false                     |
+| dotenv     | boolean \| string                                                                                 | Adds local .env variables to the environment.                                                                                                                                                                                    | `process.cwd() + '/.env'` |
+| hard       |                                                                                                   |                                                                                                                                                                                                                                  |                           |
+
+## Usage
+
+Simple example:
+
+SSM Path: `/my/app`
+SSM Parameters:
+- /my/app/db/user => `admin`
+- /my/app/db/pass => `ch@ng3m3`
+- /my/app/host => `example.com`
+
+```ts
+import EnvSsm from 'env-ssm'
+
+/**
+ * @returns{db: {user: 'admin', pass: 'ch@ng3m3'}, host: 'example.com'}
+ */
+async function getParams() {
+    const env = await EnvSsm(path)
+    const db = env.get('db').required().asJsonObject()
+    const host = env.get('api').required().asString()
+    return { db, host }
+}
+```
+
+Local development example:
+
+For the given tfvars, .env, and ssm path:
+
+SSM Path: `/my/app`
+SSM Parameters:
+- /my/app/db/user => `admin`
+
+```hcl-terraform
+# .tfvars file
+db = {
+  user = 'user'
+  pass = 'ch@ng3m3'
+}
+host = 'JohnDoe.com'
+```
+
+```dotenv
+# .env file
+host='example.com'
+```
+
+```ts
+/**
+ * @returns{db: {user: 'user', pass: 'ch@ng3m3'}, host: 'JohnDoe.com'}
+ */
+async function getParams() {
+    const env = await EnvSsm(path)
+    const db = env.get('db').required().asJsonObject()
+    const host = env.get('api').required().asString()
+    return { db, host }
+}
+```

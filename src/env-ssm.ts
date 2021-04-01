@@ -99,7 +99,7 @@ export default async function EnvSsm (input: string | string[] | Options): Promi
   if (processEnv) containers.push(loadProcessEnv())
   const container = merge(await loadSsmParams(resolvedOptions), ...containers)
 
-  // Ensure all parameter values are of type string and props are uppercase
+  // Ensure all parameter values are of type string
   for (const prop in container) {
     if (!Object.hasOwnProperty.call(container, prop) || typeof container[prop] === 'string') continue
     container[prop] = JSON.stringify(container[prop])
