@@ -30,10 +30,7 @@
   },
   "homepage": "https://github.com/byu-oit/env-ssm#readme",
   "dependencies": {
-    "@byu-oit/dottfvars": "^0.0.3",
     "debug": "^4.3.1",
-    "dotenv": "^8.2.0",
-    "globby": "^10.0.2",
     "lodash.merge": "^4.6.2",
     "lodash.set": "^4.3.2"
   },
@@ -44,6 +41,7 @@
     "@types/lodash.merge": "^4.6.6",
     "@types/lodash.set": "^4.3.6",
     "del-cli": "^3.0.1",
+    "dotenv": "^8.2.0",
     "env-var": "^7.0.0",
     "lint-staged": "^10.5.4",
     "snazzy": "^9.0.0",
@@ -52,6 +50,8 @@
     "typescript": "^4.2.3"
   },
   "peerDependencies": {
+    "@byu-oit/dottfvars": "^0.0.5",
+    "dotenv": "^8.2.0",
     "env-var": "^7.0.0"
   },
   "optionalDependencies": {
