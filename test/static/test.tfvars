@@ -1,1 +1,1 @@
-zero = "value-zero"
+PASSWORD = "tfvars-secret"

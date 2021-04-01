@@ -18,7 +18,7 @@
     "lint:fix": "ts-standard --fix | snazzy",
     "test": "jest",
     "test:watch": "jest --watch",
-    "prepublishOnly": "npm run lint && npm run build && npm run coverage"
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -30,14 +30,19 @@
   },
   "homepage": "https://github.com/byu-oit/env-ssm#readme",
   "dependencies": {
-    "@byu-oit/dottfvars": "^0.0.1",
+    "@byu-oit/dottfvars": "^0.0.3",
     "debug": "^4.3.1",
-    "globby": "^10.0.2"
+    "dotenv": "^8.2.0",
+    "globby": "^10.0.2",
+    "lodash.merge": "^4.6.2",
+    "lodash.set": "^4.3.2"
   },
   "devDependencies": {
     "@aws-sdk/client-ssm": "^3.9.0",
     "@types/debug": "^4.1.5",
     "@types/jest": "^26.0.21",
+    "@types/lodash.merge": "^4.6.6",
+    "@types/lodash.set": "^4.3.6",
     "del-cli": "^3.0.1",
     "env-var": "^7.0.0",
     "lint-staged": "^10.5.4",

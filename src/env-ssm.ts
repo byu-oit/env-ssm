@@ -1,104 +1,130 @@
 import { GetParametersByPathCommand, Parameter, SSMClient } from '@aws-sdk/client-ssm'
 import { ExtenderType, ExtenderTypeOptional, Extensions, from, IEnv, IOptionalVariable, IPresentVariable } from 'env-var'
-import globby from 'globby'
-import * as dottfvars from '@byu-oit/dottfvars'
+import * as DotTfVars from '@byu-oit/dottfvars'
+import * as DotEnv from 'dotenv'
 import Debugger from 'debug'
 import * as path from 'path'
+import * as fs from 'fs'
+import set from 'lodash.set'
+import merge from 'lodash.merge'
+
 const logger = Debugger('env-ssm')
 
-export interface Path { path: string, trim?: string }
 export interface Options {
   /**
-     * Specify an SSMClient to use for the request(s)
-     */
+    * Specify an SSMClient to use for the request(s)
+    */
   ssm?: SSMClient
 
   /**
-     * The Path to use in the GetParametersByPathCommand
-     */
-  paths: string | Path | Array<string | Path>
+    * The paths to use in the AWS SSM GetParametersByPathCommand
+    */
+  paths: string | string[]
 
   /**
-     * Removes part of the path that matches the trim (default true).
-     */
-  trim?: boolean
-
-  /**
-     * Adds process.env variables to the container (default true).
-     */
+    * Adds process.env variables to the container (default true).
+    */
   processEnv?: boolean
 
   /**
-   * Adds tfvars variables to the container (default true)
-   */
-  tfvars?: string | boolean
+    * Adds tfvar file variables to the container (default false).
+    */
+  tfvar?: string
+
+  /**
+    * Adds .env file variables to the container (default true).
+    */
+  dotenv?: boolean | string
 }
 export interface ResolvedOptions extends Required<Options> {
-  paths: Path[]
-  tfvars: string | false
+  paths: string[]
+  dotenv: string
 }
 
 export type EnvVar<T extends Extensions = {}> = IEnv<IPresentVariable<T> & ExtenderType<T>, IOptionalVariable<T> & ExtenderTypeOptional<T>>
 
 /**
- * Coerces path input to Path object
- */
-function resolvePath (path: string | Path): Path {
-  return typeof path === 'string' ? { path } : path
-}
-
-/**
  * Coerces input options into a more consistent format and setting defaults
  */
 async function resolveOptions (options: Options): Promise<ResolvedOptions> {
-  const trim = options.trim === undefined ? true : options.trim
-  const processEnv = options.processEnv === undefined ? true : options.processEnv
+  const processEnv = resolveProcessEnv(options)
+  const tfvar = resolveTfVar(options)
+  const dotenv = resolveDotEnv(options)
+  const paths = resolvePaths(options)
+  const ssm = await resolveSSMClient(options)
+  return { processEnv, tfvar, dotenv, ssm, paths }
+}
 
-  let tfvars: undefined | false | string = globby.sync(path.join(process.cwd(), './*.tfvars*'))[0]
-  if (typeof options.tfvars === 'string') {
-    tfvars = path.join(process.cwd(), options.tfvars)
-  } else if (options.tfvars == null) {
-    tfvars = false
+function resolveProcessEnv (options: Options): boolean {
+  return options.processEnv === undefined ? true : options.processEnv
+}
+
+function resolveTfVar (options: Options): string {
+  return options.tfvar !== undefined ? path.join(process.cwd(), options.tfvar) : ''
+}
+
+function resolveDotEnv (options: Options): string {
+  if (typeof options.dotenv === 'string') {
+    return path.join(process.cwd(), options.dotenv)
   }
+  return options.dotenv === true ? path.join(process.cwd(), '.env') : ''
+}
 
-  // Convert all path inputs into "Path" objects
-  const paths = !Array.isArray(options.paths)
-    ? [resolvePath(options.paths)]
-    : options.paths.map(resolvePath)
+function resolvePaths (options: Options): string[] {
+  return !Array.isArray(options.paths)
+    ? [options.paths]
+    : options.paths
+}
 
+async function resolveSSMClient (options: Options): Promise<SSMClient> {
   // Import ssm client if not provided (optional dependency)
-  const ssm: SSMClient = (options.ssm == null)
+  return (options.ssm == null)
     ? new (await import('@aws-sdk/client-ssm')).SSMClient({})
     : options.ssm
-
-  return { trim, processEnv, tfvars, ssm, paths }
 }
 
 /**
  * Creates an environment container from a SSM Parameter Store path
  */
-export default async function EnvSsm (input: string | string[] | Path[] | Options): Promise<EnvVar> {
+export default async function EnvSsm (input: string | string[] | Options): Promise<EnvVar> {
   const options = typeof input === 'string' || Array.isArray(input) ? { paths: input } : input
-  const { ssm, paths, trim, processEnv, tfvars } = await resolveOptions(options)
+  const resolvedOptions = await resolveOptions(options)
+  const { tfvar, dotenv, processEnv } = resolvedOptions
 
-  if (tfvars !== false) {
-    logger('Checking for local tfvars files')
-    dottfvars.from(tfvars)
+  // Merge all containers in order of precedence: ssm, .env, .tfvar, process.env
+  // Merging with lodash.merge to maintain ssm path tree (e.g. /db/user = 'secret' => {db: {user: 'secret'}})
+  const containers = []
+  if (dotenv !== '') containers.push(loadDotEnv(resolvedOptions))
+  if (tfvar !== '') containers.push(loadTfVar(resolvedOptions))
+  if (processEnv) containers.push(loadProcessEnv())
+  const container = merge(await loadSsmParams(resolvedOptions), ...containers)
+
+  // Ensure all parameter values are of type string and props are uppercase
+  for (const prop in container) {
+    if (!Object.hasOwnProperty.call(container, prop) || typeof container[prop] === 'string') continue
+    container[prop] = JSON.stringify(container[prop])
   }
+
+  // Return an instance of EnvVar for read-able and typed interactions with environment variables
+  return from(container)
+}
+
+async function loadSsmParams (options: ResolvedOptions): Promise<NodeJS.ProcessEnv> {
+  const { ssm, paths } = options
 
   // Make requests and combine all results into an array of parameters
   // Ensure each parameter has the "Path" that was used to retrieve it
   logger('Checking ssm for parameters')
-  const parameters = await Promise.all(paths.map(async ({ path, trim }) => {
+  const ssmParameters = await Promise.all(paths.map(async path => {
     // Create request
     const command = new GetParametersByPathCommand({ Path: path, Recursive: true })
 
-    const response: Array<Parameter & {Path: Path}> = []
+    const response: Array<Parameter & {Path: string}> = []
     try {
       // Send request and transform response
       const { Parameters = [] } = await ssm.send(command)
       for (const param of Parameters) {
-        response.push(({ ...param, Path: { path, trim } }))
+        response.push(({ ...param, Path: path }))
       }
     } catch (e: unknown) {
       // e is technically an unknown/any type
@@ -111,21 +137,49 @@ export default async function EnvSsm (input: string | string[] | Path[] | Option
   })).then(parameters => parameters.flat()) // Flatten all responses
 
   // Combine all parameters into an environment container, aka NodeJS.ProcessEnv
-  const container = parameters.reduce<NodeJS.ProcessEnv>((agg, { Path, Name, Value }) => {
+  return ssmParameters.reduce<NodeJS.ProcessEnv>((agg, { Path, Name, Value }) => {
     if (Name == null) return agg // Shouldn't get here
 
-    // Derive the part of the path to remove (if any)
-    let match = Path.trim
-    if (match == null && trim) match = Path.path
-    if (match != null && !match.endsWith('/')) match += '/'
-
-    // Trim parameter name
-    // TODO - Improve trimming
-    const key = match != null ? Name.replace(match, '') : Name
+    // Get hierarchy from parameter path
+    const path = Path === Name
+      ? Name.split('/').pop() as string
+      : Name.replace(Path + '/', '').split('/').join('.')
 
     // Add parameter into environment container
-    return { ...agg, [key]: Value }
-  }, processEnv ? process.env : {})
+    // db/password => DB.PASSWORD => env.get('DB').fromJSONObject().PASSWORD
+    return set(agg, path, Value)
+  }, {})
+}
 
-  return from(container)
+function loadDotEnv (options: ResolvedOptions): NodeJS.ProcessEnv {
+  const { dotenv } = options
+  let container: NodeJS.ProcessEnv = {}
+  try {
+    logger('Checking for local .env file')
+    container = DotEnv.parse(fs.readFileSync(dotenv))
+  } catch (e) {
+    if (e.code === 'ENOENT') {
+      logger(`Cannot resolve .env file path '${dotenv}`)
+    } else throw e
+  }
+  return container
+}
+
+function loadTfVar (options: ResolvedOptions): NodeJS.ProcessEnv {
+  const { tfvar } = options
+  let container: NodeJS.ProcessEnv = {}
+  try {
+    logger('Checking for local .tfvar file')
+    container = DotTfVars.parse(fs.readFileSync(tfvar))
+  } catch (e) {
+    if (e.code === 'ENOENT') {
+      logger(`Cannot resolve .tfvar file path '${tfvar}`)
+    } else throw e
+  }
+  return container
+}
+
+function loadProcessEnv (): NodeJS.ProcessEnv {
+  logger('Adding process.env variables')
+  return process.env
 }
