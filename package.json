@@ -1,15 +1,24 @@
 {
   "name": "@byu-oit/env-ssm",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "description": "Gets params from your environment first, then from the ssm parameter store.",
   "contributors": [
     "Gary Crye <gary_crye@byu.edu>",
     "Spencer Tuft <spencer.tuft@byu.edu>"
   ],
-  "main": "dist/index.js",
+  "main": "dist/env-ssm.js",
+  "types": "dist/env-ssm.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
   "scripts": {
     "build": "del dist && tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "coverage": "npm run test -- --coverage || exit 0",
+    "lint": "ts-standard | snazzy",
+    "lint:fix": "ts-standard --fix | snazzy",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -21,19 +30,48 @@
   },
   "homepage": "https://github.com/byu-oit/env-ssm#readme",
   "dependencies": {
-    "aws-sdk": "^2.595.0",
-    "debug": "^4.1.1",
-    "lodash.omit": "^4.5.0"
+    "debug": "^4.3.1",
+    "lodash.merge": "^4.6.2",
+    "lodash.set": "^4.3.2"
   },
   "devDependencies": {
+    "@aws-sdk/client-ssm": "^3.9.0",
     "@types/debug": "^4.1.5",
-    "@types/lodash.omit": "^4.5.6",
-    "chai": "^4.2.0",
-    "chai-as-promised": "^7.1.1",
-    "del-cli": "^3.0.0",
-    "mocha": "^6.2.2",
-    "sinon": "^7.5.0",
-    "sinon-chai": "^3.3.0",
-    "typescript": "^3.7.3"
+    "@types/jest": "^26.0.21",
+    "@types/lodash.merge": "^4.6.6",
+    "@types/lodash.set": "^4.3.6",
+    "del-cli": "^3.0.1",
+    "dotenv": "^8.2.0",
+    "env-var": "^7.0.0",
+    "jest": "^26.6.3",
+    "lint-staged": "^10.5.4",
+    "snazzy": "^9.0.0",
+    "ts-jest": "^26.5.4",
+    "ts-standard": "^10.0.0",
+    "typescript": "^4.2.3"
+  },
+  "peerDependencies": {
+    "@byu-oit/dottfvars": "^0.0.5",
+    "dotenv": "^8.2.0",
+    "env-var": "^7.0.0"
+  },
+  "optionalDependencies": {
+    "@aws-sdk/client-ssm": ">=3"
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.(ts|tsx)$": "ts-jest"
+    },
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      }
+    }
+  },
+  "lint-staged": {
+    "*.ts": "npm run lint:fix"
   }
 }
