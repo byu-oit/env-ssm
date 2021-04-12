@@ -35,6 +35,11 @@ export interface Options {
     * Adds .env file variables to the container (default true).
     */
   dotenv?: boolean | string
+
+  /**
+   * Max number of SSM parameters to fetch (default 100).
+   */
+  maxResults?: number
 }
 export interface ResolvedOptions extends Required<Options> {
   paths: string[]
@@ -47,12 +52,17 @@ export type EnvVar<T extends Extensions = {}> = IEnv<IPresentVariable<T> & Exten
  * Coerces input options into a more consistent format and setting defaults
  */
 async function resolveOptions (options: Options): Promise<ResolvedOptions> {
+  const maxResults = resolveMaxResults(options)
   const processEnv = resolveProcessEnv(options)
   const tfvar = resolveTfVar(options)
   const dotenv = resolveDotEnv(options)
   const paths = resolvePaths(options)
   const ssm = await resolveSSMClient(options)
-  return { processEnv, tfvar, dotenv, ssm, paths }
+  return { processEnv, tfvar, dotenv, ssm, paths, maxResults }
+}
+
+function resolveMaxResults (options: Options): number {
+  return options.maxResults === undefined ? 100 : options.maxResults
 }
 
 function resolveProcessEnv (options: Options): boolean {
@@ -110,14 +120,14 @@ export default async function EnvSsm (input: string | string[] | Options): Promi
 }
 
 async function loadSsmParams (options: ResolvedOptions): Promise<NodeJS.ProcessEnv> {
-  const { ssm, paths } = options
+  const { ssm, paths, maxResults } = options
 
   // Make requests and combine all results into an array of parameters
   // Ensure each parameter has the "Path" that was used to retrieve it
   logger('Checking ssm for parameters')
   const ssmParameters = await Promise.all(paths.map(async path => {
     // Create request
-    const command = new GetParametersByPathCommand({ Path: path, Recursive: true })
+    const command = new GetParametersByPathCommand({ Path: path, Recursive: true, MaxResults: maxResults })
 
     const response: Array<Parameter & {Path: string}> = []
     try {
