@@ -119,10 +119,10 @@ test('silence errors when .tfvars file is not found', async () => {
   fs.readFileSync = readFileSync
 })
 
-test('throws parsing errors for .env files', async () => {
+test('throws unexpected errors for .env files', async () => {
   const readFileSync = fs.readFileSync
   jest.spyOn(fs, 'readFileSync').mockImplementation(() => {
-    throw Error('FakeParseError')
+    throw Error('FakeError')
   })
   const path = '/some/path'
   const output = {
@@ -130,6 +130,21 @@ test('throws parsing errors for .env files', async () => {
     Parameters: []
   }
   ssm.send.mockResolvedValueOnce(output)
-  await expect(async () => await EnvSsm({ paths: path, processEnv: false, dotenv: 'missing.env' })).rejects.toThrow('FakeParseError')
+  await expect(async () => await EnvSsm({ paths: path, processEnv: false, dotenv: 'missing.env' })).rejects.toThrow('FakeError')
+  fs.readFileSync = readFileSync
+})
+
+test('throws unexpected errors for .tfvars files', async () => {
+  const readFileSync = fs.readFileSync
+  jest.spyOn(fs, 'readFileSync').mockImplementation(() => {
+    throw Error('FakeError')
+  })
+  const path = '/some/path'
+  const output = {
+    $metadata: {},
+    Parameters: []
+  }
+  ssm.send.mockResolvedValueOnce(output)
+  await expect(async () => await EnvSsm({ paths: path, processEnv: false, tfvar: 'missing.tfvars' })).rejects.toThrow('FakeError')
   fs.readFileSync = readFileSync
 })
