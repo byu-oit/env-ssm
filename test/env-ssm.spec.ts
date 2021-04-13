@@ -1,12 +1,14 @@
 import fs from 'fs'
 import { SSMClient } from './__mocks__/@aws-sdk/client-ssm'
 import EnvSsm from '../src/env-ssm'
+import { GetParametersByPathResult } from '@aws-sdk/client-ssm'
 
 const ssm = new SSMClient({ region: 'us-west-2' })
 
 const originalProcessEnv = process.env
 
 beforeEach(() => {
+  ssm.send.mockClear()
   process.env = originalProcessEnv
 })
 
@@ -14,7 +16,6 @@ test('process.env variables overwrite tfvar', async () => {
   const path = '/app/stg/db'
   const name = 'password'
   const output = {
-    $metadata: {},
     Parameters: []
   }
   ssm.send.mockResolvedValueOnce(output)
@@ -27,7 +28,6 @@ test('tfvar overwrite .env variables', async () => {
   const path = '/app/stg/db'
   const name = 'password'
   const output = {
-    $metadata: {},
     Parameters: []
   }
   ssm.send.mockResolvedValueOnce(output)
@@ -41,7 +41,6 @@ test('.env variables overwrite ssm parameters', async () => {
   const Name = `${path}/${name}`
   const Value = 'ch@ng3m3'
   const output = {
-    $metadata: {},
     Parameters: [{ Name, Value }]
   }
   ssm.send.mockResolvedValueOnce(output)
@@ -62,12 +61,25 @@ test('return ssm variables as json objects when parameter names include `/`', as
   const Name = `${path}/${name}`
   const Value = 'ch@ng3m3'
   const output = {
-    $metadata: {},
     Parameters: [{ Name, Value }]
   }
   ssm.send.mockResolvedValueOnce(output)
   const env = await EnvSsm({ paths: path, processEnv: false, dotenv: false })
   expect(env.get('db').asJsonObject()).toEqual({ password: Value })
+})
+
+test('recursively collects all parameters if the NextToken parameter is returned by AWS', async () => {
+  const path = '/app/stg'
+  const name = 'db/password'
+  const Name = `${path}/${name}`
+  const Value = 'ch@ng3m3'
+  const first: GetParametersByPathResult = { Parameters: [{ Name, Value }], NextToken: 'fakeToken' }
+  const second: GetParametersByPathResult = { Parameters: [] }
+  ssm.send.mockResolvedValueOnce(first)
+  ssm.send.mockResolvedValueOnce(second)
+  const env = await EnvSsm({ paths: path, processEnv: false, dotenv: false })
+  expect(env.get('db').asJsonObject()).toEqual({ password: Value })
+  expect(ssm.send).toBeCalledTimes(2)
 })
 
 test('use custom ssm client', async () => {
@@ -93,7 +105,6 @@ test('silence errors when .env file is not found', async () => {
   })
   const path = '/some/path'
   const output = {
-    $metadata: {},
     Parameters: []
   }
   ssm.send.mockResolvedValueOnce(output)
@@ -110,7 +121,6 @@ test('silence errors when .tfvars file is not found', async () => {
   })
   const path = '/some/path'
   const output = {
-    $metadata: {},
     Parameters: []
   }
   ssm.send.mockResolvedValueOnce(output)
@@ -126,7 +136,6 @@ test('throws unexpected errors for .env files', async () => {
   })
   const path = '/some/path'
   const output = {
-    $metadata: {},
     Parameters: []
   }
   ssm.send.mockResolvedValueOnce(output)
@@ -141,7 +150,6 @@ test('throws unexpected errors for .tfvars files', async () => {
   })
   const path = '/some/path'
   const output = {
-    $metadata: {},
     Parameters: []
   }
   ssm.send.mockResolvedValueOnce(output)
