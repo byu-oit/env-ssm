@@ -1,10 +1,8 @@
 import { GetParametersByPathCommand, Parameter, SSMClient } from '@aws-sdk/client-ssm'
 import { ExtenderType, ExtenderTypeOptional, Extensions, from, IEnv, IOptionalVariable, IPresentVariable } from 'env-var'
-import * as DotTfVars from '@byu-oit/dottfvars'
-import * as DotEnv from 'dotenv'
 import Debugger from 'debug'
-import * as path from 'path'
-import * as fs from 'fs'
+import path from 'path'
+import fs from 'fs'
 import set from 'lodash.set'
 import merge from 'lodash.merge'
 
@@ -103,9 +101,9 @@ export default async function EnvSsm (input: string | string[] | Options): Promi
 
   // Merge all containers in order of precedence: ssm, .env, .tfvar, process.env
   // Merging with lodash.merge to maintain ssm path tree (e.g. /db/user = 'secret' => {db: {user: 'secret'}})
-  const containers = []
-  if (dotenv !== '') containers.push(loadDotEnv(resolvedOptions))
-  if (tfvar !== '') containers.push(loadTfVar(resolvedOptions))
+  const containers: NodeJS.ProcessEnv[] = []
+  if (dotenv !== '') containers.push(await loadDotEnv(resolvedOptions))
+  if (tfvar !== '') containers.push(await loadTfVar(resolvedOptions))
   if (processEnv) containers.push(loadProcessEnv())
   const container = merge(await loadSsmParams(resolvedOptions), ...containers)
 
@@ -160,10 +158,11 @@ async function loadSsmParams (options: ResolvedOptions): Promise<NodeJS.ProcessE
   }, {})
 }
 
-function loadDotEnv (options: ResolvedOptions): NodeJS.ProcessEnv {
+async function loadDotEnv (options: ResolvedOptions): Promise<NodeJS.ProcessEnv> {
   const { dotenv } = options
   let container: NodeJS.ProcessEnv = {}
   try {
+    const DotEnv = await import('dotenv')
     logger('Checking for local .env file')
     container = DotEnv.parse(fs.readFileSync(dotenv))
   } catch (e) {
@@ -174,10 +173,11 @@ function loadDotEnv (options: ResolvedOptions): NodeJS.ProcessEnv {
   return container
 }
 
-function loadTfVar (options: ResolvedOptions): NodeJS.ProcessEnv {
+async function loadTfVar (options: ResolvedOptions): Promise<NodeJS.ProcessEnv> {
   const { tfvar } = options
   let container: NodeJS.ProcessEnv = {}
   try {
+    const DotTfVars = await import('@byu-oit/dottfvars')
     logger('Checking for local .tfvar file')
     container = DotTfVars.parse(fs.readFileSync(tfvar))
   } catch (e) {
