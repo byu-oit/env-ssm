@@ -26,7 +26,6 @@ For convenience installing them all:
 | processEnv | boolean                                                                                           | If true, it will add process.env variables to the container.                                                                                                                                                                     | true                      |
 | tfvars     | string                                                                                            | Adds local tfvars variables to the environment. Must be the exact path to the tfvars file relative to the project or package root.                                                                                               | false                     |
 | dotenv     | boolean \| string                                                                                 | Adds local .env variables to the environment. Can be false, which disables `.env` support. May also be the exact path to the .env file relative to the project or package root.                                                  | `process.cwd() + '/.env'` |
-| maxResults | number                                                                                            | Max number of SSM parameters to fetch.                                                                                                                                                                                           | 100                       |
 
 ## Usage
 
