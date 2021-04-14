@@ -116,7 +116,7 @@ async function loadSsmParams (options: ResolvedOptions): Promise<NodeJS.ProcessE
   const ssmParameters = await Promise.all(paths.map(async path => {
     const response: Array<Parameter & {Path: string}> = []
     async function getSsmParameters (token?: string): Promise<void> {
-      const command = new GetParametersByPathCommand({ Path: path, Recursive: true, ...token != null && { NextToken: token } })
+      const command = new GetParametersByPathCommand({ Path: path, Recursive: true, ...token != null && { NextToken: token }, WithDecryption: true })
       let nextToken: string | undefined
       try {
         // Send request and transform response
