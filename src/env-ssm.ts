@@ -58,7 +58,7 @@ function resolveProcessEnv (options: Options): boolean {
 }
 
 function resolveTfVar (options: Options): string {
-  return options.tfvar !== undefined ? path.join(process.cwd(), options.tfvar) : ''
+  return options.tfvar !== undefined ? path.resolve(process.cwd(), options.tfvar) : ''
 }
 
 function resolveDotEnv (options: Options): string {
