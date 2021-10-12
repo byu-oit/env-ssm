@@ -33,10 +33,16 @@ export interface Options {
     * Adds .env file variables to the container (default true).
     */
   dotenv?: boolean | string
+
+  /**
+   * Specify a path delimiter (default "/").
+   */
+  pathDelimiter?: string
 }
 export interface ResolvedOptions extends Required<Options> {
   paths: string[]
   dotenv: string
+  pathDelimiter: string
 }
 
 export type EnvVar<T extends Extensions = {}> = IEnv<IPresentVariable<T> & ExtenderType<T>, IOptionalVariable<T> & ExtenderTypeOptional<T>>
@@ -49,8 +55,9 @@ async function resolveOptions (options: Options): Promise<ResolvedOptions> {
   const tfvar = resolveTfVar(options)
   const dotenv = resolveDotEnv(options)
   const paths = resolvePaths(options)
+  const pathDelimiter = resolvePathDelimiter(options)
   const ssm = await resolveSSMClient(options)
-  return { processEnv, tfvar, dotenv, ssm, paths }
+  return { processEnv, tfvar, dotenv, ssm, paths, pathDelimiter }
 }
 
 function resolveProcessEnv (options: Options): boolean {
@@ -72,6 +79,10 @@ function resolvePaths (options: Options): string[] {
   return !Array.isArray(options.paths)
     ? [options.paths]
     : options.paths
+}
+
+function resolvePathDelimiter (options: Options): string {
+  return options.pathDelimiter ?? '/'
 }
 
 async function resolveSSMClient (options: Options): Promise<SSMClient> {
@@ -108,7 +119,7 @@ export default async function EnvSsm (input: string | string[] | Options): Promi
 }
 
 async function loadSsmParams (options: ResolvedOptions): Promise<NodeJS.ProcessEnv> {
-  const { ssm, paths } = options
+  const { ssm, paths, pathDelimiter } = options
 
   // Make requests and combine all results into an array of parameters
   // Ensure each parameter has the "Path" that was used to retrieve it
@@ -149,8 +160,8 @@ async function loadSsmParams (options: ResolvedOptions): Promise<NodeJS.ProcessE
 
     // Get hierarchy from parameter path
     const path = Path === Name
-      ? Name.split('/').pop() as string
-      : Name.replace(Path + '/', '').split('/').join('.')
+      ? Name.split(pathDelimiter).pop() as string
+      : Name.replace(RegExp(`^${Path}${pathDelimiter}?`), '').split(pathDelimiter).join('.')
 
     // Add parameter into environment container
     return set(agg, path, Value)
