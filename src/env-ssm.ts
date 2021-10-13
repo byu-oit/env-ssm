@@ -1,12 +1,8 @@
-import { GetParametersByPathCommand, Parameter, SSMClient } from '@aws-sdk/client-ssm'
+import { SSMClient } from '@aws-sdk/client-ssm'
 import { ExtenderType, ExtenderTypeOptional, Extensions, from, IEnv, IOptionalVariable, IPresentVariable } from 'env-var'
-import Debugger from 'debug'
-import path from 'path'
-import fs from 'fs'
-import set from 'lodash.set'
 import merge from 'lodash.merge'
-
-const logger = Debugger('env-ssm')
+import path from 'path'
+import { loadDotEnv, loadProcessEnv, loadSsmParams, loadTfVar } from './loaders'
 
 export interface Options {
   /**
@@ -116,89 +112,4 @@ export default async function EnvSsm (input: string | string[] | Options): Promi
 
   // Return an instance of EnvVar for read-able and typed interactions with environment variables
   return from(container)
-}
-
-async function loadSsmParams (options: ResolvedOptions): Promise<NodeJS.ProcessEnv> {
-  const { ssm, paths, pathDelimiter } = options
-
-  // Make requests and combine all results into an array of parameters
-  // Ensure each parameter has the "Path" that was used to retrieve it
-  logger('Checking ssm for parameters')
-  const ssmParameters = await Promise.all(paths.map(async path => {
-    const response: Array<Parameter & {Path: string}> = []
-    async function getSsmParameters (token?: string): Promise<void> {
-      const command = new GetParametersByPathCommand({ Path: path, Recursive: true, ...token != null && { NextToken: token }, WithDecryption: true })
-      let nextToken: string | undefined
-      try {
-        // Send request and transform response
-        const result = await ssm.send(command)
-        const { Parameters = [] } = result
-        nextToken = result.NextToken
-        for (const param of Parameters) {
-          response.push(({ ...param, Path: path }))
-        }
-      } catch (e: unknown) {
-        // e is technically an unknown/any type
-        const message = e instanceof Error ? e.message : JSON.stringify(e)
-        // It's possible that the parameter is not required, so we'll handle failed responses and only warn if
-        // verbose logging is turned on via the DEBUG environment variable
-        logger(`Cannot resolve path from AWS SSM '${path}': ${message}`)
-      }
-
-      // Recursively call to get next parameters since the max number returned is 10
-      if (nextToken != null) {
-        await getSsmParameters(nextToken)
-      }
-    }
-    await getSsmParameters()
-    return response
-  })).then(parameters => parameters.flat()) // Flatten all responses
-
-  // Combine all parameters into an environment container, aka NodeJS.ProcessEnv
-  return ssmParameters.reduce<NodeJS.ProcessEnv>((agg, { Path, Name, Value }) => {
-    if (Name == null) return agg // Shouldn't get here
-
-    // Get hierarchy from parameter path
-    const path = Path === Name
-      ? Name.split(pathDelimiter).pop() as string
-      : Name.replace(RegExp(`^${Path}${pathDelimiter}?`), '').split(pathDelimiter).join('.')
-
-    // Add parameter into environment container
-    return set(agg, path, Value)
-  }, {})
-}
-
-async function loadDotEnv (options: ResolvedOptions): Promise<NodeJS.ProcessEnv> {
-  const { dotenv } = options
-  let container: NodeJS.ProcessEnv = {}
-  try {
-    const DotEnv = await import('dotenv')
-    logger('Checking for local .env file')
-    container = DotEnv.parse(fs.readFileSync(dotenv))
-  } catch (e) {
-    if (e.code === 'ENOENT') {
-      logger(`Cannot resolve .env file path '${dotenv}`)
-    } else throw e
-  }
-  return container
-}
-
-async function loadTfVar (options: ResolvedOptions): Promise<NodeJS.ProcessEnv> {
-  const { tfvar } = options
-  let container: NodeJS.ProcessEnv = {}
-  try {
-    const DotTfVars = await import('@byu-oit/dottfvars')
-    logger('Checking for local .tfvar file')
-    container = DotTfVars.parse(fs.readFileSync(tfvar))
-  } catch (e) {
-    if (e.code === 'ENOENT') {
-      logger(`Cannot resolve .tfvar file path '${tfvar}`)
-    } else throw e
-  }
-  return container
-}
-
-function loadProcessEnv (): NodeJS.ProcessEnv {
-  logger('Adding process.env variables')
-  return process.env
 }
