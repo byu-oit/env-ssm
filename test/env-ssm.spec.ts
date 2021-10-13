@@ -68,6 +68,19 @@ test('return ssm variables as json objects when parameter names include `/`', as
   expect(env.get('db').asJsonObject()).toEqual({ password: Value })
 })
 
+test('can load parameters by various path delimiters such as "/" or "."', async () => {
+  const path = 'app.stg'
+  const name = 'db.password'
+  const Name = `${path}.${name}`
+  const Value = 'ch@ng3m3'
+  const output = {
+    Parameters: [{ Name, Value }]
+  }
+  ssm.send.mockResolvedValueOnce(output)
+  const env = await EnvSsm({ paths: path, processEnv: false, dotenv: false, pathDelimiter: '.' })
+  expect(env.get('db').asJsonObject()).toEqual({ password: Value })
+})
+
 test('recursively collects all parameters if the NextToken parameter is returned by AWS', async () => {
   const path = '/app/stg'
   const name = 'db/password'
