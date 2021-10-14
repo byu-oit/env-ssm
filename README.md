@@ -22,7 +22,7 @@ For convenience installing them all: `npm install @byu-oit/env env-var
 | Option        | Type                                                                                              | Description                                                                                                                                                                                                                      | Default                   |
 |:--------------|:--------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------------------|
 | ssm           | [SSMClient](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-ssm/index.html) | An AWS SSM client instance. The [default SSM client can be configured with environment variables](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/setup-credentials.html) or a custom instance may be provided.      | SSMClient                 |
-| paths         | string \| string[]                                                                                | The SSM parameter store path to use. All parameters that fall under this path will be returned as properties in the environment variables object. Parameters with multiple nested children will be returned as stringified JSON. | **Required**              |
+| paths         | [PathSsmLike \| PathSsmLike[]](./src/path-ssm.ts)                                                 | The SSM parameter store path to use. All parameters that fall under this path will be returned as properties in the environment variables object. Parameters with multiple nested children will be returned as stringified JSON. | **Required**              |
 | pathDelimiter | string                                                                                            | Specify a path delimiter.                                                                                                                                                                                                        | `/`                       |
 | processEnv    | boolean                                                                                           | If true, it will add process.env variables to the container.                                                                                                                                                                     | true                      |
 | tfvars        | string                                                                                            | Adds local tfvars variables to the environment. Must be the exact path to the tfvars file relative to the project or package root.                                                                                               | false                     |
@@ -38,8 +38,7 @@ following order:
 3. Load `.tfvars` file
 4. Load `process.env`
 
-Simple example:
-
+###  Single Path
 SSM Path: `/my/app` SSM Parameters:
 - /my/app/db/user => `admin`
 - /my/app/db/pass => `ch@ng3m3`
@@ -59,7 +58,36 @@ async function getParams() {
 }
 ```
 
-Local development example:
+### Multiple Paths & Delimiters
+SSM Paths:
+- `/my/app`
+- `my.app`
+
+SSM Parameters:
+- /my/app/db/user => `admin`
+- /my/app/db/pass => `ch@ng3m3`
+- my.app.host => `example.com`
+
+```ts
+import EnvSsm from 'env-ssm'
+
+/**
+ * @returns {db: {user: 'admin', pass: 'ch@ng3m3'}, host: 'example.com'}
+ */
+async function getParams() {
+    const env = await EnvSsm([
+        '/my/app',
+        
+        // If no delimiter is specified, the path is treated as a single property name
+        { path: 'my.app', delimiter: '.' }
+    ])
+    const db = env.get('db').required().asJsonObject()
+    const host = env.get('api').required().asString()
+    return { db, host }
+}
+```
+
+###  For Local Development
 
 For the given tfvars, .env, and ssm path:
 
