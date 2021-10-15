@@ -1,7 +1,7 @@
 import fs from 'fs'
 import { SSMClient } from './__mocks__/@aws-sdk/client-ssm'
 import EnvSsm from '../src/env-ssm'
-import { GetParametersByPathResult } from '@aws-sdk/client-ssm'
+import { DescribeParametersResult, GetParametersByPathResult, GetParametersResult } from '@aws-sdk/client-ssm'
 
 const ssm = new SSMClient({ region: 'us-west-2' })
 
@@ -31,7 +31,12 @@ test('tfvar overwrite .env variables', async () => {
     Parameters: []
   }
   ssm.send.mockResolvedValueOnce(output)
-  const env = await EnvSsm({ paths: path, dotenv: 'test/static/test.env', tfvar: 'test/static/test.tfvars', processEnv: false })
+  const env = await EnvSsm({
+    paths: path,
+    dotenv: 'test/static/test.env',
+    tfvar: 'test/static/test.tfvars',
+    processEnv: false
+  })
   expect(env.get(name.toUpperCase()).asString()).toEqual('tfvars-secret')
 })
 
@@ -68,31 +73,95 @@ test('return ssm variables as json objects when parameter names include `/`', as
   expect(env.get('db').asJsonObject()).toEqual({ password: Value })
 })
 
-test('can load parameters by various path delimiters such as "/" or "."', async () => {
-  const path = 'app.stg'
-  const name = 'db.password'
-  const Name = `${path}.${name}`
-  const Value = 'ch@ng3m3'
-  const output = {
-    Parameters: [{ Name, Value }]
+test('can load parameters with different delimiters', async () => {
+  const periodDelimited = { path: 'app.delimiter', delimiter: '.' }
+  const dashDelimited = { path: 'app-delimiter', delimiter: '-' }
+
+  const describePeriodParametersResponse = {
+    Parameters: [
+      { Name: `${periodDelimited.path}${periodDelimited.delimiter}period` }
+    ]
   }
-  ssm.send.mockResolvedValueOnce(output)
-  const env = await EnvSsm({ paths: path, processEnv: false, dotenv: false, pathDelimiter: '.' })
-  expect(env.get('db').asJsonObject()).toEqual({ password: Value })
+  const describeSlashParametersResponse = {
+    Parameters: [
+      { Name: `${dashDelimited.path}${dashDelimited.delimiter}dash` }
+    ]
+  }
+  const fetchPeriodParametersByNameResponse = {
+    Parameters: [
+      { Name: `${periodDelimited.path}${periodDelimited.delimiter}period`, Value: periodDelimited.delimiter }
+    ]
+  }
+  const fetchSlashParametersByNameResponse = {
+    Parameters: [
+      { Name: `${dashDelimited.path}${dashDelimited.delimiter}dash`, Value: dashDelimited.delimiter }
+    ]
+  }
+
+  ssm.send.mockResolvedValueOnce(describePeriodParametersResponse)
+  ssm.send.mockResolvedValueOnce(describeSlashParametersResponse)
+
+  ssm.send.mockResolvedValueOnce(fetchPeriodParametersByNameResponse)
+  ssm.send.mockResolvedValueOnce(fetchSlashParametersByNameResponse)
+
+  const env = await EnvSsm({
+    paths: [periodDelimited, dashDelimited],
+    processEnv: false,
+    dotenv: false
+  })
+  const period = env.get('period').asString()
+  const dash = env.get('dash').asString()
+
+  expect(period).toEqual(periodDelimited.delimiter)
+  expect(dash).toEqual(dashDelimited.delimiter)
+  expect(ssm.send).toBeCalledTimes(4)
 })
 
 test('recursively collects all parameters if the NextToken parameter is returned by AWS', async () => {
-  const path = '/app/stg'
-  const name = 'db/password'
-  const Name = `${path}/${name}`
-  const Value = 'ch@ng3m3'
-  const first: GetParametersByPathResult = { Parameters: [{ Name, Value }], NextToken: 'fakeToken' }
-  const second: GetParametersByPathResult = { Parameters: [] }
-  ssm.send.mockResolvedValueOnce(first)
-  ssm.send.mockResolvedValueOnce(second)
-  const env = await EnvSsm({ paths: path, processEnv: false, dotenv: false })
-  expect(env.get('db').asJsonObject()).toEqual({ password: Value })
-  expect(ssm.send).toBeCalledTimes(2)
+  const slashPath = '/app/stg'
+  const slashName = 'db/password'
+  const periodPath = 'app.stg'
+  const periodName = 'db.username'
+
+  const username = 'admin'
+  const password = 'ch@ng3m3'
+
+  const getParametersByPathResult: GetParametersByPathResult = {
+    Parameters: [{
+      Name: `${slashPath}/${slashName}`,
+      Value: password
+    }],
+    NextToken: 'fakeToken'
+  }
+  const getParametersByPathResult1: GetParametersByPathResult = { Parameters: [] }
+
+  const describeParametersResult: DescribeParametersResult = {
+    Parameters: [{ Name: `${periodPath}.${periodName}` }],
+    NextToken: 'fakeToken'
+  }
+  const describeParametersResult1: DescribeParametersResult = { Parameters: [] }
+  const getParametersResult: GetParametersResult = {
+    Parameters: [{
+      Name: `${periodPath}.${periodName}`,
+      Value: username
+    }]
+  }
+
+  ssm.send.mockResolvedValueOnce(getParametersByPathResult)
+  ssm.send.mockResolvedValueOnce(describeParametersResult)
+
+  ssm.send.mockResolvedValueOnce(getParametersByPathResult1)
+  ssm.send.mockResolvedValueOnce(describeParametersResult1)
+
+  ssm.send.mockResolvedValueOnce(getParametersResult)
+
+  const env = await EnvSsm({
+    paths: [{ path: slashPath }, { path: periodPath, delimiter: '.' }],
+    processEnv: false,
+    dotenv: false
+  })
+  expect(env.get('db').asJsonObject()).toEqual({ password, username })
+  expect(ssm.send).toBeCalledTimes(5)
 })
 
 test('use custom ssm client', async () => {
@@ -104,10 +173,21 @@ test('use custom ssm client', async () => {
 
 // TODO - Silence only some AWS errors and allow others to propagate
 test('silence AWS errors', async () => {
-  const path = '/some/path'
+  const paths = ['/some/path', { path: 'some.path', delimiter: '.' }, { path: 'another.path', delimiter: '.' }]
+
+  // mock error GetParametersByPath (first path)
   ssm.send.mockRejectedValueOnce(Error('Fake Error'))
-  const env = await EnvSsm({ paths: path, processEnv: false, dotenv: false })
-  await expect(env.get()).toEqual({})
+
+  // mock DescribeParameters, then mock error GetParameters (second path)
+  ssm.send.mockResolvedValueOnce({ Parameters: [{ Name: 'some.path.fake' }] })
+  ssm.send.mockRejectedValueOnce(Error('Fake Error')) // Testing rejections in GetParameters
+
+  // mock error DescribeParameters (third path)
+  ssm.send.mockRejectedValueOnce(Error('Fake Error'))
+
+  const env = await EnvSsm({ paths, processEnv: false, dotenv: false })
+  expect(env.get()).toEqual({})
+  expect(ssm.send).toBeCalledTimes(4)
 })
 
 test('silence errors when .env file is not found', async () => {
@@ -152,7 +232,11 @@ test('throws unexpected errors for .env files', async () => {
     Parameters: []
   }
   ssm.send.mockResolvedValueOnce(output)
-  await expect(async () => await EnvSsm({ paths: path, processEnv: false, dotenv: 'missing.env' })).rejects.toThrow('FakeError')
+  await expect(async () => await EnvSsm({
+    paths: path,
+    processEnv: false,
+    dotenv: 'missing.env'
+  })).rejects.toThrow('FakeError')
   fs.readFileSync = readFileSync
 })
 
@@ -166,6 +250,10 @@ test('throws unexpected errors for .tfvars files', async () => {
     Parameters: []
   }
   ssm.send.mockResolvedValueOnce(output)
-  await expect(async () => await EnvSsm({ paths: path, processEnv: false, tfvar: 'missing.tfvars' })).rejects.toThrow('FakeError')
+  await expect(async () => await EnvSsm({
+    paths: path,
+    processEnv: false,
+    tfvar: 'missing.tfvars'
+  })).rejects.toThrow('FakeError')
   fs.readFileSync = readFileSync
 })
