@@ -4,17 +4,17 @@ Load environment from SSM Parameter Store.
 
 ## Install
 
-This package has a peer dependency to `env-var`. To install, use the
+This package has a peer dependency to `env-var` and `@aws-sdk/client-ssm`. To install, use the
 following command:
 
-`npm install @byu-oit/env-ssm env-var`
+`npm install @byu-oit/env-ssm @aws-sdk/client-ssm env-var`
 
 If specifying a tfvars file, please install @byu-oit/dottfvars: `npm
 install @byu-oit/dottfvars`
 
 If specifying a dotenv file, please install dotenv: `npm install dotenv`
 
-For convenience installing them all: `npm install @byu-oit/env env-var
+For convenience installing them all: `npm install @byu-oit/env @aws-sdk/client-ssm env-var
 @byu-oit/dottfvars dotenv`
 
 ## Options
