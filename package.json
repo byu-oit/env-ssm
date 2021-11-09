@@ -12,10 +12,10 @@
     "dist/**/*"
   ],
   "scripts": {
-    "build": "del dist && tsc",
+    "build": "rimraf dist && tsc",
     "coverage": "npm run test -- --coverage || exit 0",
-    "lint": "ts-standard | snazzy",
-    "lint:fix": "ts-standard --fix | snazzy",
+    "lint": "eslint .",
+    "lint:fix": "npm run lint -- --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "prepublishOnly": "npm run build"
@@ -33,34 +33,38 @@
     "debug": "^4.3.1",
     "lodash.chunk": "^4.2.0",
     "lodash.merge": "^4.6.2",
-    "lodash.set": "^4.3.2"
+    "lodash.set": "^4.3.2",
+    "rimraf": "^3.0.2"
   },
   "devDependencies": {
     "@aws-sdk/client-ssm": "^3.9.0",
     "@byu-oit/dottfvars": "0.0.6",
     "@tsconfig/node12": "^1.0.9",
     "@types/debug": "^4.1.5",
-    "@types/jest": "^26.0.21",
+    "@types/jest": "^27.0.2",
     "@types/lodash.chunk": "^4.2.6",
     "@types/lodash.merge": "^4.6.6",
     "@types/lodash.set": "^4.3.6",
-    "del-cli": "^3.0.1",
-    "dotenv": "^8.2.0",
-    "env-var": "^7.0.0",
-    "jest": "^27.2.5",
-    "lint-staged": "^10.5.4",
-    "snazzy": "^9.0.0",
-    "ts-jest": "^27.0.5",
-    "ts-standard": "^10.0.0",
-    "typescript": "^4.2.3"
+    "@typescript-eslint/eslint-plugin": "^4.33.0",
+    "dotenv": "^10.0.0",
+    "env-var": "^7.1.1",
+    "eslint": "^7.32.0",
+    "eslint-config-standard-with-typescript": "^21.0.1",
+    "eslint-plugin-import": "^2.25.2",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^5.1.1",
+    "jest": "^27.3.1",
+    "lint-staged": "^11.2.6",
+    "ts-jest": "^27.0.7",
+    "typescript": "^4.4.4"
   },
   "peerDependencies": {
     "@aws-sdk/client-ssm": ">=3",
-    "env-var": "^7.0.0"
+    "env-var": ">=7.0.0"
   },
   "optionalDependencies": {
     "@byu-oit/dottfvars": "^0.0.6",
-    "dotenv": "^8.2.0"
+    "dotenv": ">=8.2.0"
   },
   "jest": {
     "transform": {
