@@ -1,5 +1,5 @@
 import { SSMClient } from '@aws-sdk/client-ssm'
-import { ExtenderType, ExtenderTypeOptional, Extensions, from, IEnv, IOptionalVariable, IPresentVariable } from 'env-var'
+import { Extensions, from, IEnv, IOptionalVariable } from 'env-var'
 import merge from 'lodash.merge'
 import {
   resolveSSMClient, resolvePaths, resolvePathDelimiter, resolveDotEnv, resolveProcessEnv, resolveTfVar,
@@ -47,7 +47,7 @@ export interface ResolvedOptions {
   dotenv?: string
 }
 
-export type EnvVar<T extends Extensions = {}> = IEnv<IPresentVariable<T> & ExtenderType<T>, IOptionalVariable<T> & ExtenderTypeOptional<T>>
+export type EnvVar<Exs extends Extensions = {}> = IEnv<IOptionalVariable<Exs>, NodeJS.ProcessEnv>
 
 /**
  * Coerces input options into a more consistent format and setting defaults

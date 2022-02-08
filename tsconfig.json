@@ -6,7 +6,6 @@
     "sourceMap": true
   },
   "include": [
-    "src/**/*"
-  ],
-  "compileOnSave": false
+    "src"
+  ]
 }
