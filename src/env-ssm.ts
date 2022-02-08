@@ -1,5 +1,5 @@
 import { SSMClient } from '@aws-sdk/client-ssm'
-import { Extensions, from, IEnv, IOptionalVariable } from 'env-var'
+import { from } from 'env-var'
 import merge from 'lodash.merge'
 import {
   resolveSSMClient, resolvePaths, resolvePathDelimiter, resolveDotEnv, resolveProcessEnv, resolveTfVar,
@@ -47,8 +47,6 @@ export interface ResolvedOptions {
   dotenv?: string
 }
 
-export type EnvVar<Exs extends Extensions = {}> = IEnv<IOptionalVariable<Exs>, NodeJS.ProcessEnv>
-
 /**
  * Coerces input options into a more consistent format and setting defaults
  */
@@ -66,7 +64,7 @@ async function resolveOptions (input: PathSsmLike | PathSsmLike[] | Options, del
 /**
  * Creates an environment container from an SSM Parameter Store path
  */
-export default async function EnvSsm (input: PathSsmLike | PathSsmLike[] | Options = {}, delimiter?: string): Promise<EnvVar> {
+export default async function EnvSsm (input: PathSsmLike | PathSsmLike[] | Options = {}, delimiter?: string): Promise<ReturnType<typeof from>> {
   const options = await resolveOptions(input, delimiter)
   const { tfvar, dotenv, processEnv, ssm, paths } = options
 
