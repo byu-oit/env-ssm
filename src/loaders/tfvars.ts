@@ -1,16 +1,25 @@
 import fs from 'fs'
-import { Options, ResolvedOptions } from '../env-ssm'
+import { Options } from '../env-ssm'
 import Debugger from 'debug'
 import path from 'path'
 
 const logger = Debugger('env-ssm/tfvars-loader')
 
-export function resolveTfVar (options: Options): string {
-  return options.tfvar !== undefined ? path.resolve(process.cwd(), options.tfvar) : ''
+export const ENV_SSM_TFVAR_KEY = 'ENV_SSM_TFVAR'
+
+export function resolveTfVar (options: Options): string | undefined {
+  if (options.tfvar === undefined) {
+    const envSsmTfVar = process.env[ENV_SSM_TFVAR_KEY]
+    if (envSsmTfVar !== undefined) {
+      return path.resolve(process.cwd(), envSsmTfVar)
+    }
+  }
+  if (typeof options.tfvar === 'string') {
+    return path.resolve(process.cwd(), options.tfvar)
+  }
 }
 
-export async function loadTfVar (options: ResolvedOptions): Promise<NodeJS.ProcessEnv> {
-  const { tfvar } = options
+export async function loadTfVar (tfvar: string): Promise<NodeJS.ProcessEnv> {
   let container: NodeJS.ProcessEnv = {}
   try {
     const DotTfVars = await import('@byu-oit/dottfvars')

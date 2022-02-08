@@ -2,7 +2,7 @@ export type PathSsmLike = string | { path: string, delimiter?: string }
 
 export class PathSsm {
   static like (value: unknown): value is PathSsmLike {
-    return typeof value === 'string' || Object.hasOwnProperty.call(value, 'path')
+    return typeof value === 'string' || (typeof value === 'object' && value !== null && Object.hasOwnProperty.call(value, 'path'))
   }
 
   static from (value: PathSsmLike, delimiter?: string): PathSsm {

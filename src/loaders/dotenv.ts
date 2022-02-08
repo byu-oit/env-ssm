@@ -1,19 +1,26 @@
 import fs from 'fs'
-import { Options, ResolvedOptions } from '../env-ssm'
+import { Options } from '../env-ssm'
 import Debugger from 'debug'
 import path from 'path'
 
 const logger = Debugger('env-ssm/dotenv-loader')
 
-export function resolveDotEnv (options: Options): string {
+export const ENV_SSM_DOTENV_KEY = 'ENV_SSM_DOTENV'
+
+export function resolveDotEnv (options: Options): string | undefined {
+  const envSsmDotenv = process.env[ENV_SSM_DOTENV_KEY]
+  if (options.dotenv === undefined && envSsmDotenv !== undefined) {
+    return path.join(process.cwd(), envSsmDotenv)
+  }
   if (typeof options.dotenv === 'string') {
     return path.join(process.cwd(), options.dotenv)
   }
-  return options.dotenv === true ? path.join(process.cwd(), '.env') : ''
+  if (options.dotenv === true) {
+    return path.join(process.cwd(), '.env')
+  }
 }
 
-export async function loadDotEnv (options: ResolvedOptions): Promise<NodeJS.ProcessEnv> {
-  const { dotenv } = options
+export async function loadDotEnv (dotenv: string): Promise<NodeJS.ProcessEnv> {
   let container: NodeJS.ProcessEnv = {}
   try {
     const DotEnv = await import('dotenv')

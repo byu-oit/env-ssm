@@ -11,7 +11,7 @@ export interface Options {
   /**
    * The paths to use in the AWS SSM GetParametersByPathCommand
    */
-  paths: PathSsmLike | PathSsm | Array<PathSsmLike | PathSsm>
+  paths?: PathSsmLike | PathSsm | Array<PathSsmLike | PathSsm>
 
   /**
    * Specify a path delimiter (default "/").
@@ -38,9 +38,13 @@ export interface Options {
     */
   dotenv?: boolean | string
 }
-export interface ResolvedOptions extends Required<Options> {
+export interface ResolvedOptions {
   paths: PathSsm[]
-  dotenv: string
+  pathDelimiter: string
+  ssm: SSMClient
+  processEnv: boolean
+  tfvar?: string
+  dotenv?: string
 }
 
 export type EnvVar<T extends Extensions = {}> = IEnv<IPresentVariable<T> & ExtenderType<T>, IOptionalVariable<T> & ExtenderTypeOptional<T>>
@@ -60,19 +64,19 @@ async function resolveOptions (input: PathSsmLike | PathSsmLike[] | Options, del
 }
 
 /**
- * Creates an environment container from a SSM Parameter Store path
+ * Creates an environment container from an SSM Parameter Store path
  */
-export default async function EnvSsm (input: PathSsmLike | PathSsmLike[] | Options, delimiter?: string): Promise<EnvVar> {
+export default async function EnvSsm (input: PathSsmLike | PathSsmLike[] | Options = {}, delimiter?: string): Promise<EnvVar> {
   const options = await resolveOptions(input, delimiter)
-  const { tfvar, dotenv, processEnv } = options
+  const { tfvar, dotenv, processEnv, ssm, paths } = options
 
   // Merge all containers in order of precedence: ssm, .env, .tfvar, process.env
   // Merging with lodash.merge to maintain ssm path tree (e.g. /db/user = 'secret' => {db: {user: 'secret'}})
   const containers: NodeJS.ProcessEnv[] = []
-  if (dotenv !== '') containers.push(await loadDotEnv(options))
-  if (tfvar !== '') containers.push(await loadTfVar(options))
+  if (dotenv !== undefined) containers.push(await loadDotEnv(dotenv))
+  if (tfvar !== undefined) containers.push(await loadTfVar(tfvar))
   if (processEnv) containers.push(loadProcessEnv())
-  const container = merge(await loadSsmParams(options), ...containers)
+  const container = merge(await loadSsmParams(ssm, paths), ...containers)
 
   // Ensure all parameter values are of type string
   for (const prop in container) {

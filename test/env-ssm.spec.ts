@@ -2,6 +2,16 @@ import fs from 'fs'
 import { SSMClient } from './__mocks__/@aws-sdk/client-ssm'
 import EnvSsm from '../src/env-ssm'
 import { DescribeParametersResult, GetParametersByPathResult, GetParametersResult } from '@aws-sdk/client-ssm'
+import {
+  ENV_SSM_DOTENV_KEY,
+  ENV_SSM_PATH_DELIMITER_KEY,
+  ENV_SSM_PATHS_KEY,
+  ENV_SSM_PROCESS_ENV_KEY,
+  ENV_SSM_TFVAR_KEY, resolveDotEnv,
+  resolvePathDelimiter,
+  resolvePaths, resolveProcessEnv,
+  resolveTfVar
+} from '../src/loaders'
 
 const ssm = new SSMClient({ region: 'us-west-2' })
 
@@ -256,4 +266,40 @@ test('throws unexpected errors for .tfvars files', async () => {
     tfvar: 'missing.tfvars'
   })).rejects.toThrow('FakeError')
   fs.readFileSync = readFileSync
+})
+
+describe('Using ENV_SSM_*', () => {
+  test('throws an error when missing the paths argument', async () => {
+    expect(() => resolvePaths({}, '/')).toThrow(/^Missing paths argument/)
+  })
+
+  test('use ENV_SSM_PATHS to resolve option', () => {
+    process.env[ENV_SSM_PATHS_KEY] = 'my.path'
+    const option = resolvePaths({}, '.')
+    expect(option).toEqual([{ delimiter: '/', path: 'my.path' }])
+  })
+
+  test('use ENV_SSM_PATH_DELIMITER to resolve option', () => {
+    process.env[ENV_SSM_PATH_DELIMITER_KEY] = '.'
+    const option = resolvePathDelimiter({})
+    expect(option).toEqual('.')
+  })
+
+  test('use ENV_SSM_TFVAR to resolve option', () => {
+    process.env[ENV_SSM_TFVAR_KEY] = 'test/static/test.tfvars'
+    const option = resolveTfVar({})
+    expect(option).toContain('test/static/test.tfvars')
+  })
+
+  test('use ENV_SSM_DOTENV to resolve option', () => {
+    process.env[ENV_SSM_DOTENV_KEY] = 'test/static/test.env'
+    const option = resolveDotEnv({})
+    expect(option).toContain('test/static/test.env')
+  })
+
+  test('use ENV_SSM_PROCESS_ENV to resolve option', () => {
+    process.env[ENV_SSM_PROCESS_ENV_KEY] = 'false'
+    const option = resolveProcessEnv({})
+    expect(option).toEqual(false)
+  })
 })

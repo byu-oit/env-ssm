@@ -8,22 +8,34 @@ import {
   ParameterMetadata,
   SSMClient
 } from '@aws-sdk/client-ssm'
-import { Options, ResolvedOptions } from '../env-ssm'
+import { Options } from '../env-ssm'
 import { PathSsm } from '../path-ssm'
 import Debugger from 'debug'
 
 const logger = Debugger('env-ssm/ssm-loader')
 
+export const ENV_SSM_PATHS_KEY = 'ENV_SSM_PATHS'
+export const ENV_SSM_PATH_DELIMITER_KEY = 'ENV_SSM_PATH_DELIMITER'
+
 export function resolvePathDelimiter (input: Options): string {
-  input.pathDelimiter = input.pathDelimiter ?? '/'
+  input.pathDelimiter = input.pathDelimiter ?? process.env[ENV_SSM_PATH_DELIMITER_KEY] ?? '/'
   return input.pathDelimiter
 }
 
 export function resolvePaths (options: Options, delimiter: string): PathSsm[] {
+  if (options.paths === undefined) {
+    const envSsmPath = process.env[ENV_SSM_PATHS_KEY]
+    if (envSsmPath !== undefined) {
+      return envSsmPath.split(',').map(path => PathSsm.from(path))
+    }
+  }
   if (PathSsm.like(options.paths)) {
     return [PathSsm.from(options.paths, delimiter)]
   }
-  return options.paths.map(pathLike => PathSsm.from(pathLike))
+  if (Array.isArray(options.paths)) {
+    return options.paths.map(pathLike => PathSsm.from(pathLike))
+  }
+  throw TypeError('Missing paths argument. Paths may be given via the ENV_SSM_PATHS environment variable or passed directly into the EnvSsm constructor.')
 }
 
 export async function resolveSSMClient (options: Options): Promise<SSMClient> {
@@ -33,10 +45,9 @@ export async function resolveSSMClient (options: Options): Promise<SSMClient> {
     : options.ssm
 }
 
-export async function loadSsmParams (options: ResolvedOptions): Promise<NodeJS.ProcessEnv> {
-  const { ssm, paths } = options
+export async function loadSsmParams (ssm: SSMClient, paths: PathSsm[]): Promise<NodeJS.ProcessEnv> {
   // Make requests and combine all results into an array of parameters
-  // Ensure each parameter has the "Path" that was used to retrieve it
+  // Ensures each parameter has the "Path" that was used to retrieve it
   logger('Checking ssm for parameters')
   const ssmParameters = await Promise.all(paths.map(async path => {
     return path.delimiter === '/' && path.path.startsWith(path.delimiter)
