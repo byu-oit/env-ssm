@@ -1,9 +1,17 @@
 import { SSMClient } from '@aws-sdk/client-ssm'
-import { from } from 'env-var'
+import { from, IEnv, IOptionalVariable } from 'env-var'
 import merge from 'lodash.merge'
 import {
-  resolveSSMClient, resolvePaths, resolvePathDelimiter, resolveDotEnv, resolveProcessEnv, resolveTfVar,
-  loadSsmParams, loadDotEnv, loadProcessEnv, loadTfVar
+  loadDotEnv,
+  loadProcessEnv,
+  loadSsmParams,
+  loadTfVar,
+  resolveDotEnv,
+  resolvePathDelimiter,
+  resolvePaths,
+  resolveProcessEnv,
+  resolveSSMClient,
+  resolveTfVar
 } from './loaders'
 import { PathSsm, PathSsmLike } from './path-ssm'
 
@@ -19,25 +27,26 @@ export interface Options {
   pathDelimiter?: string
 
   /**
-    * Specify an SSMClient to use for the request(s)
-    */
+   * Specify an SSMClient to use for the request(s)
+   */
   ssm?: SSMClient
 
   /**
-    * Adds process.env variables to the container (default true).
-    */
+   * Adds process.env variables to the container (default true).
+   */
   processEnv?: boolean
 
   /**
-    * Adds tfvar file variables to the container (default false).
-    */
+   * Adds tfvar file variables to the container (default false).
+   */
   tfvar?: string
 
   /**
-    * Adds .env file variables to the container (default true).
-    */
+   * Adds .env file variables to the container (default true).
+   */
   dotenv?: boolean | string
 }
+
 export interface ResolvedOptions {
   paths: PathSsm[]
   pathDelimiter: string
@@ -51,7 +60,12 @@ export interface ResolvedOptions {
  * Coerces input options into a more consistent format and setting defaults
  */
 async function resolveOptions (input: PathSsmLike | PathSsmLike[] | Options, delimiter?: string): Promise<ResolvedOptions> {
-  const options: Options = PathSsm.like(input) || Array.isArray(input) ? { paths: input, pathDelimiter: delimiter } : input
+  const options: Options = PathSsm.like(input) || Array.isArray(input)
+    ? {
+        paths: input,
+        pathDelimiter: delimiter
+      }
+    : input
   const pathDelimiter = resolvePathDelimiter(options)
   const paths = resolvePaths(options, pathDelimiter)
   const processEnv = resolveProcessEnv(options)
@@ -64,7 +78,7 @@ async function resolveOptions (input: PathSsmLike | PathSsmLike[] | Options, del
 /**
  * Creates an environment container from an SSM Parameter Store path
  */
-export default async function EnvSsm (input: PathSsmLike | PathSsmLike[] | Options = {}, delimiter?: string): Promise<ReturnType<typeof from>> {
+export default async function EnvSsm<T extends Record<string, unknown>> (input: PathSsmLike | PathSsmLike[] | Options = {}, delimiter?: string): Promise<IEnv<IOptionalVariable, T>> {
   const options = await resolveOptions(input, delimiter)
   const { tfvar, dotenv, processEnv, ssm, paths } = options
 
