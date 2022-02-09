@@ -7,7 +7,8 @@ import {
   ENV_SSM_PATH_DELIMITER_KEY,
   ENV_SSM_PATHS_KEY,
   ENV_SSM_PROCESS_ENV_KEY,
-  ENV_SSM_TFVAR_KEY, resolveDotEnv,
+  ENV_SSM_TFVAR_KEY,
+  resolveDotEnv,
   resolvePathDelimiter,
   resolvePaths, resolveProcessEnv,
   resolveTfVar
