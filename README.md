@@ -1,3 +1,6 @@
+[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
+![ npm ](https://img.shields.io/npm/v/@byu-oit/env-ssm)
+
 # env-ssm
 
 Load environment from SSM Parameter Store.

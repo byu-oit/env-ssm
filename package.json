@@ -12,13 +12,12 @@
     "dist/**/*"
   ],
   "scripts": {
-    "build": "del dist && tsc",
-    "coverage": "npm run test -- --coverage || exit 0",
-    "lint": "ts-standard | snazzy",
-    "lint:fix": "ts-standard --fix | snazzy",
-    "test": "jest",
-    "test:coverage": "jest --coverage",
-    "test:watch": "jest --watch",
+    "build": "rimraf dist && tsc",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "jest --colors",
+    "test:coverage": "jest --colors --coverage || exit 0",
+    "test:watch": "jest --colors --watch",
     "prepublishOnly": "npm run build"
   },
   "repository": {
@@ -41,12 +40,13 @@
     "@byu-oit/dottfvars": "0.0.6",
     "@tsconfig/node12": "^1.0.9",
     "@types/debug": "^4.1.5",
-    "@types/jest": "^26.0.21",
+    "@types/jest": "^27.4.0",
     "@types/lodash.chunk": "^4.2.6",
     "@types/lodash.merge": "^4.6.6",
     "@types/lodash.set": "^4.3.6",
     "@typescript-eslint/eslint-plugin": "^4.33.0",
-    "del-cli": "^3.0.1",
+    "commitizen": "^4.2.4",
+    "cz-conventional-changelog": "^3.3.0",
     "dotenv": "^8.2.0",
     "env-var": "^7.0.0",
     "eslint": "^7.32.0",
@@ -54,11 +54,10 @@
     "eslint-plugin-import": "^2.25.4",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^5.2.0",
-    "jest": "^27.2.5",
+    "jest": "^27.5.1",
     "lint-staged": "^10.5.4",
-    "snazzy": "^9.0.0",
+    "rimraf": "^3.0.2",
     "ts-jest": "^27.0.5",
-    "ts-standard": "^10.0.0",
     "typescript": "^4.5.5"
   },
   "peerDependencies": {
@@ -84,5 +83,10 @@
   },
   "lint-staged": {
     "*.ts": "npm run lint:fix"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
   }
 }
