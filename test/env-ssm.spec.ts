@@ -274,10 +274,27 @@ describe('Using ENV_SSM_*', () => {
     expect(() => resolvePaths({}, '/')).toThrow(/^Missing paths argument/)
   })
 
-  test('use ENV_SSM_PATHS to resolve option', () => {
-    process.env[ENV_SSM_PATHS_KEY] = 'my.path'
+  test('use ENV_SSM_PATHS to resolve option as comma-seperated list of strings', () => {
+    process.env[ENV_SSM_PATHS_KEY] = 'app.dev,app.prd'
     const option = resolvePaths({}, '.')
-    expect(option).toEqual([{ delimiter: '/', path: 'my.path' }])
+    expect(option).toEqual([{ delimiter: '.', path: 'app.dev' }, { delimiter: '.', path: 'app.prd' }])
+  })
+
+  test('use ENV_SSM_PATHS to resolve option as JSON Array', () => {
+    process.env[ENV_SSM_PATHS_KEY] = '[{ "path":"app.dev", "delimiter":"." },{ "path":"/app/prd" }]'
+    const arrOption = resolvePaths({}, '.')
+    expect(arrOption).toEqual([{ delimiter: '.', path: 'app.dev' }, { delimiter: '/', path: '/app/prd' }])
+  })
+
+  test('use ENV_SSM_PATHS to resolve option as JSON Object', () => {
+    process.env[ENV_SSM_PATHS_KEY] = '{ "path":"/app/prd" }'
+    const objOptions = resolvePaths({}, '.')
+    expect(objOptions).toEqual([{ delimiter: '/', path: '/app/prd' }])
+  })
+
+  test('using ENV_SSM_PATHS without PathSsmLike throws error', () => {
+    process.env[ENV_SSM_PATHS_KEY] = '{ "paths":"/app/prd" }' // Not PathSsmLike
+    expect(() => resolvePaths({}, '.')).toThrow(/^Input must be PathSsmLike/)
   })
 
   test('use ENV_SSM_PATH_DELIMITER to resolve option', () => {

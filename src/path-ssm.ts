@@ -5,7 +5,10 @@ export class PathSsm {
     return typeof value === 'string' || (typeof value === 'object' && value !== null && Object.hasOwnProperty.call(value, 'path'))
   }
 
-  static from (value: PathSsmLike, delimiter?: string): PathSsm {
+  static from (value: unknown, delimiter?: string): PathSsm {
+    if (!PathSsm.like(value)) {
+      throw TypeError('Input must be PathSsmLike (string | { path: string, delimiter?: string })')
+    }
     const defaultDelimiter = typeof value !== 'string' ? value.delimiter : delimiter
     if (typeof value === 'string') return new PathSsm(value, defaultDelimiter)
     return new PathSsm(value.path, defaultDelimiter)

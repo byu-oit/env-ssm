@@ -26,7 +26,18 @@ export function resolvePaths (options: Options, delimiter: string): PathSsm[] {
   if (options.paths === undefined) {
     const envSsmPath = process.env[ENV_SSM_PATHS_KEY]
     if (envSsmPath !== undefined) {
-      return envSsmPath.split(',').map(path => PathSsm.from(path))
+      let result: unknown
+      try {
+        result = JSON.parse(envSsmPath)
+        logger('Parsed ENV_SSM_PATH value as JSON')
+      } catch (e) {
+        result = envSsmPath.split(',')
+        logger('Parsed ENV_SSM_PATH value as comma-seperated list of SSM paths')
+      }
+      if (!Array.isArray(result)) {
+        return [PathSsm.from(result)]
+      }
+      return result.map(path => PathSsm.from(path, delimiter))
     }
   }
   if (PathSsm.like(options.paths)) {
