@@ -9,7 +9,8 @@ updates:
     target-branch: "master" # Our dev pipeline runs off the dev branch, production runs off of master
     # Requesting reviews from yourself makes Dependabot PRs easy to find (https://github.com/pulls/review-requested)
     reviewers:
-      - "stuft2"
+      - byu-oit/devops-tooling
+      - byu-oit/devx
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
@@ -19,4 +20,5 @@ updates:
     target-branch: "master" # Our dev pipeline runs off the dev branch, production runs off of master
     # Requesting reviews from yourself makes Dependabot PRs easy to find (https://github.com/pulls/review-requested)
     reviewers:
-      - "stuft2"
+      - byu-oit/devops-tooling
+      - byu-oit/devx
