@@ -269,11 +269,12 @@ test('throws unexpected errors for .tfvars files', async () => {
   fs.readFileSync = readFileSync
 })
 
-describe('Using ENV_SSM_*', () => {
-  test('throws an error when missing the paths argument', async () => {
-    expect(() => resolvePaths({}, '/')).toThrow(/^Missing paths argument/)
-  })
+test('pass in false for ssm to disable calls to ssm', async () => {
+  const env = await EnvSsm({ ssm: false, processEnv: false })
+  expect(env.get()).toEqual({})
+})
 
+describe('Using ENV_SSM_*', () => {
   test('use ENV_SSM_PATHS to resolve option as comma-seperated list of strings', () => {
     process.env[ENV_SSM_PATHS_KEY] = 'app.dev,app.prd'
     const option = resolvePaths({}, '.')

@@ -23,6 +23,7 @@ export function resolvePathDelimiter (input: Options): string {
 }
 
 export function resolvePaths (options: Options, delimiter: string): PathSsm[] {
+  const paths: PathSsm[] = []
   if (options.paths === undefined) {
     const envSsmPath = process.env[ENV_SSM_PATHS_KEY]
     if (envSsmPath !== undefined) {
@@ -35,23 +36,26 @@ export function resolvePaths (options: Options, delimiter: string): PathSsm[] {
         logger('Parsed ENV_SSM_PATH value as comma-seperated list of SSM paths')
       }
       if (!Array.isArray(result)) {
-        return [PathSsm.from(result)]
+        paths.push(PathSsm.from(result))
+      } else {
+        paths.push(...result.map(path => PathSsm.from(path, delimiter)))
       }
-      return result.map(path => PathSsm.from(path, delimiter))
     }
+  } else if (PathSsm.like(options.paths)) {
+    paths.push(PathSsm.from(options.paths, delimiter))
+  } else if (Array.isArray(options.paths)) {
+    paths.push(...options.paths.map(pathLike => PathSsm.from(pathLike)))
   }
-  if (PathSsm.like(options.paths)) {
-    return [PathSsm.from(options.paths, delimiter)]
-  }
-  if (Array.isArray(options.paths)) {
-    return options.paths.map(pathLike => PathSsm.from(pathLike))
-  }
-  throw TypeError('Missing paths argument. Paths may be given via the ENV_SSM_PATHS environment variable or passed directly into the EnvSsm constructor.')
+  return paths
 }
 
-export async function resolveSSMClient (options: Options): Promise<SSMClient> {
+export async function resolveSSMClient (options: Options): Promise<SSMClient | undefined> {
+  if (options.ssm === false) {
+    // Disabling SSM Parameters
+    return
+  }
   // Import ssm client if not provided (optional dependency)
-  return (options.ssm == null)
+  return (options.ssm === undefined || options.ssm === true)
     ? new (await import('@aws-sdk/client-ssm')).SSMClient({})
     : options.ssm
 }
