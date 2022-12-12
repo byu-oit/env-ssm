@@ -1,9 +1,9 @@
-name: Deployment
+name: Publish
 
 on:
-  push:
-    tags:
-      - "v*"
+  release:
+    types:
+      - published
 
 # Allow one concurrent deployment
 concurrency:
