@@ -2,117 +2,42 @@ name: Deployment
 
 on:
   push:
-    branches: [main]
+    tags:
+      - "v*"
+
+# Allow one concurrent deployment
+concurrency:
+  group: "publish"
+  cancel-in-progress: false
 
 env:
-  node_version: "14.x"
+  node_version: "18.x"
 
 jobs:
-  env:
-    name: Set Env Vars
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set Env Vars
-        run: |
-          matrix='{
-            "registry":[
-              {
-                "token":"NPM_TOKEN",
-                "url":"https://registry.npmjs.org"
-              },
-              {
-                "token":"GITHUB_TOKEN",
-                "url":"https://npm.pkg.github.com"
-              }
-            ]
-          }'
-          echo matrix=`echo $matrix | jq -c .` >> $GITHUB_ENV
-    outputs:
-      matrix: ${{ env.matrix }}
-
-  test:
-    name: Test Module
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: ${{ env.node_version }}
-
-      - name: npm install
-        run: npm install
-
-      - name: npm test
-        run: |
-          npm run test:coverage
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: true
-  audit:
-    name: Audit Module
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: ${{ env.node_version }}
-
-      - name: npm audit
-        run: npm audit --audit-level=critical
-
-  lint:
-    name: Lint Module
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: ${{ env.node_version }}
-
-      - name: npm install
-        run: npm install
-
-      - name: npm lint
-        run: npm run lint
-
   publish:
-    needs: [env, test, audit, lint] # Wait for checks to finish before publishing
     name: Publish node package
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{ fromJson(needs.env.outputs.matrix) }}
+      matrix:
+        registry:
+          - token: NPM_TOKEN
+            url: https://registry.npmjs.org
+          - token: GITHUB_TOKEN
+            url: https://npm.pkg.github.com
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - name: Disallow Concurrent Runs
-        uses: byu-oit/github-action-disallow-concurrent-runs@v2
-        with:
-          token: ${{ github.token }}
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v2.1.4
+      - uses: actions/setup-node@v3.1.4
         with:
           node-version: ${{ env.node_version }}
           registry-url: ${{ matrix.registry.url }}
           scope: '@byu-oit'
 
-      - name: npm install
-        run: npm install
+      - run: npm install
         env:
           NODE_AUTH_TOKEN: ${{ secrets[matrix.registry.token] }}
 
         # The prepublishOnly script builds the package before publishing
-      - name: Publish
-        run: npm publish
+      - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets[matrix.registry.token] }}

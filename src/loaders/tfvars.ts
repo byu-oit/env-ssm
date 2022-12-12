@@ -8,11 +8,9 @@ const logger = Debugger('env-ssm/tfvars-loader')
 export const ENV_SSM_TFVAR_KEY = 'ENV_SSM_TFVAR'
 
 export function resolveTfVar (options: Options): string | undefined {
-  if (options.tfvar === undefined) {
-    const envSsmTfVar = process.env[ENV_SSM_TFVAR_KEY]
-    if (envSsmTfVar !== undefined) {
-      return path.resolve(process.cwd(), envSsmTfVar)
-    }
+  const envSsmTfVar = process.env[ENV_SSM_TFVAR_KEY]
+  if (options.tfvar === undefined && envSsmTfVar !== undefined) {
+    return path.resolve(process.cwd(), envSsmTfVar)
   }
   if (typeof options.tfvar === 'string') {
     return path.resolve(process.cwd(), options.tfvar)
