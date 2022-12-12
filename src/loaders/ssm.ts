@@ -128,8 +128,8 @@ async function describeSsmParameters (ssm: SSMClient, prefix: PathSsm, parameter
   return parameters
 }
 
-async function fetchSsmParametersByName (ssm: SSMClient, prefix: PathSsm, names: string[]): Promise<Array<Parameter & {Path: PathSsm}>> {
-  const response: Array<Parameter & {Path: PathSsm}> = []
+async function fetchSsmParametersByName (ssm: SSMClient, prefix: PathSsm, names: string[]): Promise<Array<Parameter & { Path: PathSsm }>> {
+  const response: Array<Parameter & { Path: PathSsm }> = []
   if (names.length === 0) return response // Early out if names[] is empty
 
   const command = new GetParametersCommand({ Names: names, WithDecryption: true })
