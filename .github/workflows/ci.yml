@@ -38,13 +38,13 @@ jobs:
       - run: npm install
       - run: npm run lint
 
-    build:
-      name: Build Module
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v3
-        - uses: actions/setup-node@v3
-          with:
-            node-version: ${{ env.node_version }}
-        - run: npm install
-        - run: npm run build
+  build:
+    name: Build Module
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.node_version }}
+      - run: npm install
+      - run: npm run build
