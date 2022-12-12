@@ -5,6 +5,9 @@ on:
     types:
       - published
 
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
 # Allow one concurrent deployment
 concurrency:
   group: "publish"
@@ -27,7 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions/setup-node@v3.1.4
+      - uses: actions/setup-node@v3
         with:
           node-version: ${{ env.node_version }}
           registry-url: ${{ matrix.registry.url }}
