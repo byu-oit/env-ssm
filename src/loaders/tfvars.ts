@@ -1,5 +1,5 @@
 import fs from 'fs'
-import { Options } from '../env-ssm'
+import { Options } from '../env-ssm.js'
 import Debugger from 'debug'
 import path from 'path'
 

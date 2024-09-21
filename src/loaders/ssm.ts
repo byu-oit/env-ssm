@@ -8,8 +8,8 @@ import {
   ParameterMetadata,
   SSMClient
 } from '@aws-sdk/client-ssm'
-import { Options } from '../env-ssm'
-import { PathSsm } from '../path-ssm'
+import { Options } from '../env-ssm.js'
+import { PathSsm } from '../path-ssm.js'
 import Debugger from 'debug'
 
 const logger = Debugger('env-ssm/ssm-loader')

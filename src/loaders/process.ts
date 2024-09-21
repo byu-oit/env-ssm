@@ -1,5 +1,5 @@
 import Debugger from 'debug'
-import { Options } from '../env-ssm'
+import { Options } from '../env-ssm.js'
 
 const logger = Debugger('env-ssm/process-loader')
 

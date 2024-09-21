@@ -1,6 +1,6 @@
 import fs from 'fs'
-import { SSMClient } from './__mocks__/@aws-sdk/client-ssm'
-import EnvSsm from '../src/env-ssm'
+import { SSMClient } from './__mocks__/@aws-sdk/client-ssm.js'
+import EnvSsm from '../src/env-ssm.js'
 import { DescribeParametersResult, GetParametersByPathResult, GetParametersResult } from '@aws-sdk/client-ssm'
 import {
   ENV_SSM_DOTENV_KEY,
@@ -12,7 +12,7 @@ import {
   resolvePathDelimiter,
   resolvePaths, resolveProcessEnv,
   resolveTfVar
-} from '../src/loaders'
+} from '../src/loaders/index.js'
 
 const ssm = new SSMClient({ region: 'us-west-2' })
 

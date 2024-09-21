@@ -12,8 +12,8 @@ import {
   resolveProcessEnv,
   resolveSSMClient,
   resolveTfVar
-} from './loaders'
-import { PathSsm, PathSsmLike } from './path-ssm'
+} from './loaders/index.js'
+import { PathSsm, PathSsmLike } from './path-ssm.js'
 
 export interface Options {
   /**
@@ -75,7 +75,7 @@ async function resolveOptions (input: PathSsmLike | PathSsmLike[] | Options = {}
 /**
  * Creates an environment container from an SSM Parameter Store path
  */
-export default async function EnvSsm<T extends Record<string, unknown>> (input: PathSsmLike | PathSsmLike[] | Options = {}, delimiter?: string): Promise<IEnv<IOptionalVariable, T>> {
+export async function EnvSsm<T extends Record<string, unknown>> (input: PathSsmLike | PathSsmLike[] | Options = {}, delimiter?: string): Promise<IEnv<IOptionalVariable, T>> {
   const options = await resolveOptions(input, delimiter)
   const { tfvar, dotenv, processEnv, ssm, paths } = options
 
@@ -90,6 +90,7 @@ export default async function EnvSsm<T extends Record<string, unknown>> (input: 
 
   // Ensure all parameter values are of type string
   for (const prop in container) {
+    /* eslint-disable-next-line @typescript-eslint/strict-boolean-expressions */
     if (!Object.hasOwnProperty.call(container, prop) || typeof container[prop] === 'string') continue
     container[prop] = JSON.stringify(container[prop])
   }
@@ -97,3 +98,4 @@ export default async function EnvSsm<T extends Record<string, unknown>> (input: 
   // Return an instance of EnvVar for read-able and typed interactions with environment variables
   return from(container)
 }
+export default EnvSsm
