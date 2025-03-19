@@ -7,14 +7,14 @@
     "Spencer Tuft <spencer.tuft@byu.edu>"
   ],
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "module": "./dist/index.js",
+  "main": "./dist/env-ssm.js",
+  "types": "./dist/env-ssm.d.ts",
+  "module": "./dist/env-ssm.js",
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "types": "./dist/env-ssm.d.ts",
+      "default": "./dist/env-ssm.js"
     }
   },
   "files": [
