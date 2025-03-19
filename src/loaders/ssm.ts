@@ -1,5 +1,4 @@
-import set from 'lodash.set'
-import chunk from 'lodash.chunk'
+import { set, chunk } from 'lodash'
 import {
   DescribeParametersCommand,
   GetParametersByPathCommand,

@@ -1,6 +1,6 @@
 {
   "name": "@byu-oit/env-ssm",
-  "version": "3.4.0",
+  "version": "3.4.1",
   "description": "Gets params from your environment first, then from the ssm parameter store.",
   "contributors": [
     "Gary Crye <gary_crye@byu.edu>",
@@ -31,9 +31,7 @@
   "homepage": "https://github.com/byu-oit/env-ssm#readme",
   "dependencies": {
     "debug": "^4.3.1",
-    "lodash.chunk": "^4.2.0",
-    "lodash.merge": "^4.6.2",
-    "lodash.set": "^4.3.2"
+    "lodash": "^4.17.16"
   },
   "devDependencies": {
     "@aws-sdk/client-ssm": "^3.9.0",
@@ -41,9 +39,7 @@
     "@tsconfig/node18": "^1.0.1",
     "@types/debug": "^4.1.5",
     "@types/jest": "^29.2.4",
-    "@types/lodash.chunk": "^4.2.6",
-    "@types/lodash.merge": "^4.6.6",
-    "@types/lodash.set": "^4.3.6",
+    "@types/lodash": "^4.17.16",
     "@typescript-eslint/eslint-plugin": "^5.46.1",
     "commitizen": "^4.2.4",
     "cz-conventional-changelog": "^3.3.0",
