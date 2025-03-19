@@ -12,6 +12,7 @@ import {
 } from './loaders/index.js'
 import { PathSsm, PathSsmLike } from './path-ssm.js'
 import { CoercionContainer } from './coercion.js'
+export { CoercionContainer } from './coercion.js'
 
 export interface Options {
   /**
