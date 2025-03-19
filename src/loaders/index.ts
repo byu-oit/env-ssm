@@ -1,4 +1,3 @@
-export * from './dotenv'
-export * from './process'
-export * from './ssm'
-export * from './tfvars'
+export * from './dotenv.js'
+export * from './process.js'
+export * from './ssm.js'
