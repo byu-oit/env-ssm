@@ -12,7 +12,7 @@ import {
 } from './loaders/index.js'
 import { PathSsm, PathSsmLike } from './path-ssm.js'
 import { CoercionContainer } from './coercion.js'
-export { CoercionContainer as from } from './coercion.js'
+export { CoercionContainer } from './coercion.js'
 
 export interface Options {
   /**
@@ -67,7 +67,7 @@ async function resolveOptions (input: PathSsmLike | PathSsmLike[] | Options = {}
 /**
  * Creates an environment container from an SSM Parameter Store path
  */
-export default async function EnvSsm<T extends Record<string, unknown>> (input: PathSsmLike | PathSsmLike[] | Options = {}, delimiter?: string): Promise<CoercionContainer<T>> {
+export async function EnvSsm<T extends Record<string, unknown>> (input: PathSsmLike | PathSsmLike[] | Options = {}, delimiter?: string): Promise<CoercionContainer<T>> {
   const options = await resolveOptions(input, delimiter)
   const { dotenv, processEnv, ssm, paths } = options
 
