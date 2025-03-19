@@ -1,6 +1,6 @@
 import { SSMClient } from '@aws-sdk/client-ssm'
 import { from, IEnv, IOptionalVariable } from 'env-var'
-import merge from 'lodash.merge'
+import { merge } from 'lodash'
 import {
   loadDotEnv,
   loadProcessEnv,
