@@ -21,11 +21,12 @@ jobs:
         with:
           node-version: ${{ env.node_version }}
       - run: npm install
-      - run: npm run coverage
-      - uses: codecov/codecov-action@v3
+      - run: npm run test:coverage
+      - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
+          slug: byu-oit/env-ssm
 
   lint:
     name: Lint Module
