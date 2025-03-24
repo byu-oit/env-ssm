@@ -171,4 +171,19 @@ export class Coercion {
     }
     return value
   }
+
+  /**
+   * Coerces the variable to a URL object using the URL constructor.
+   */
+  asUrlObject (): URL {
+    const value = this.asString()
+    try {
+      return new URL(value)
+    } catch (err) {
+      if (err instanceof TypeError) {
+        throw new Error(`Invalid URL string for ${String(this.key)}: ${value}: ${err.message}`)
+      }
+      throw err
+    }
+  }
 }

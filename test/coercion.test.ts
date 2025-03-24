@@ -123,3 +123,17 @@ test('Coercion.asUrlString behavior for non-string values', () => {
   // so the method will throw.
   assert.throws(() => coercion.asUrlString(), /Invalid URL string/)
 })
+
+// --- Tests for Coercion.asUrlObject ---
+test('Coercion.asUrlObject throws for a valid URL string', () => {
+  const expected = 'http://example.com'
+  const coercion = new Coercion('url', expected)
+  assert.deepStrictEqual(coercion.asUrlObject(), new URL(expected))
+})
+
+test('Coercion.asUrlObject behavior for non-string values', () => {
+  const coercion = new Coercion('url', 12345)
+  // asUrlString calls asString which converts 12345 to "12345", then URL.parse("12345") returns an object,
+  // so the method will throw.
+  assert.throws(() => coercion.asUrlObject(), /Invalid URL string/)
+})
